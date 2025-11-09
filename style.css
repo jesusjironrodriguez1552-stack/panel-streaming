@@ -110,3 +110,18 @@ main {
 .success {
     color: green;
 }
+/* Estilo para el botón de borrar */
+.delete-btn {
+    margin-left: 15px;
+    background-color: #dc3545; /* Rojo */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+    width: auto; /* Anula el ancho de 100% de otros botones */
+}
+.delete-btn:hover {
+    background-color: #c82333;
+}
