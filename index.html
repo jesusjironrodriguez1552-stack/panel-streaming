@@ -1,41 +1,42 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Básico</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
-    <header>
-        <h1>Mi Panel Básico</h1>
-        <div class="user-info">
-            <span id="user-email"></span>
-            <button id="logout-button">Cerrar Sesión</button>
-        </div>
-    </header>
+<main>
+    <div class="form-container">
+        <h3>Añadir Nueva Cuenta (Stock)</h3>
+        <form id="email-form">
+            
+            <div class="form-group">
+                <label for="plataforma-input">Plataforma:</label>
+                <input type="text" id="plataforma-input" placeholder="Ej: NETFLIX PREMIUM" required>
+            </div>
 
-    <main>
-        <div class="form-container">
-            <h3>Guardar un Correo Nuevo</h3>
-            <form id="email-form">
-                <div class="form-group">
-                    <label for="email-input">Correo:</label>
-                    <input type="email" id="email-input" placeholder="nuevo@correo.com" required>
-                </div>
-                <button type="submit">Guardar Correo</button>
-                <p id="form-message" class="success"></p>
-            </form>
-        </div>
+            <div class="form-group">
+                <label for="email-input">Correo:</label>
+                <input type="email" id="email-input" placeholder="nuevo@correo.com" required>
+            </div>
 
-        <div class="form-container" style="margin-top: 20px;">
-            <h3>Correos Guardados en Supabase</h3>
-            <ul id="email-list">
-                <li>Cargando...</li>
-            </ul>
-        </div>
+            <div class="form-group">
+                <label for="password-input">Contraseña:</label>
+                <input type="text" id="password-input" placeholder="Clave123" required>
+            </div>
 
-    </main>
-    <script type="module" src="script.js"></script>
-</body>
-</html>
+            <div class="form-group">
+                <label for="perfiles-input">Perfiles Disponibles (Número):</label>
+                <input type="number" id="perfiles-input" min="1" placeholder="Ej: 5" required>
+            </div>
+
+            <button type="submit">Guardar Cuenta</button>
+            <p id="form-message" class="success"></p>
+        </form>
+    </div>
+
+    <div class="form-container" style="margin-top: 20px;">
+        <h3>Stock de Cuentas</h3>
+        <ul id="email-list">
+            <li>Cargando...</li>
+        </ul>
+    </div>
+
+    <div id="output-area" class="form-container" style="margin-top: 20px; display: none;">
+        <h4>¡Copia y pega esto para tu cliente!</h4>
+        <textarea id="output-text" rows="7" style="width: 100%; font-family: monospace;"></textarea>
+    </div>
+</main>
