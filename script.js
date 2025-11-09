@@ -22,7 +22,7 @@ async function checkAuth() {
         if (userEmailElement) userEmailElement.textContent = `Conectado: ${session.user.email}`
         
         // ¡ACTUALIZADO! Ahora carga ambas listas
-        if (document.getElementById('email-list')) {
+        if (document.getElementById('stock-list')) { // Busca la nueva lista del sidebar
             cargarCuentasGuardadas(); // Carga las cuentas ACTIVAS
             cargarCuentasArchivadas(); // Carga las cuentas BORRADAS (en rojo)
         }
@@ -30,6 +30,7 @@ async function checkAuth() {
 }
 checkAuth()
 
+// ... (El código de loginForm y logoutButton se queda exactamente igual) ...
 const loginForm = document.getElementById('login-form')
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
@@ -44,7 +45,6 @@ if (loginForm) {
         }
     })
 }
-
 const logoutButton = document.getElementById('logout-button')
 if (logoutButton) {
     logoutButton.addEventListener('click', async () => {
@@ -52,6 +52,7 @@ if (logoutButton) {
         window.location.href = 'login.html'
     })
 }
+
 
 // --- 3. LÓGICA DE LA APP (¡Tu idea!) ---
 
@@ -63,14 +64,43 @@ function showMessage(element, text, isSuccess = true) {
     setTimeout(() => { el.textContent = ''; }, 3000);
 }
 
-// Función para cargar las cuentas (VERSIÓN 4 - ¡Solo activas!)
+// --- ¡NUEVA FUNCIÓN! El contador de días ---
+function calcularDiasRestantes(fechaPago) {
+    if (!fechaPago) return { texto: 'No definida', color: 'grey' };
+    
+    // Sumamos 1 día al parsear porque Supabase a veces lo da un día antes
+    const fecha = new Date(fechaPago + 'T00:00:00-05:00'); 
+    
+    // Calculamos la fecha de vencimiento (pago + 30 días)
+    const fechaVencimiento = new Date(fecha.setDate(fecha.getDate() + 30));
+    const hoy = new Date();
+    
+    // Reseteamos las horas para comparar solo días
+    hoy.setHours(0,0,0,0);
+    fechaVencimiento.setHours(0,0,0,0);
+
+    const diffTiempo = fechaVencimiento.getTime() - hoy.getTime();
+    const diffDias = Math.ceil(diffTiempo / (1000 * 60 * 60 * 24));
+
+    if (diffDias < 0) {
+        return { texto: `Vencido (hace ${Math.abs(diffDias)} días)`, color: 'red' };
+    } else if (diffDias === 0) {
+        return { texto: '¡Vence HOY!', color: 'red' };
+    } else if (diffDias <= 5) {
+        return { texto: `Vence en ${diffDias} días`, color: 'orange' };
+    } else {
+        return { texto: `Vence en ${diffDias} días`, color: 'green' };
+    }
+}
+
+// Función para cargar las cuentas (VERSIÓN 5 - ¡Con contador y en el Sidebar!)
 async function cargarCuentasGuardadas() {
-    const listElement = document.getElementById('email-list');
+    const listElement = document.getElementById('stock-list'); // ¡Cambiado!
     
     const { data: cuentas, error } = await supabase
         .from('correos_guardados')
         .select('id, email, contrasena, plataforma, perfiles_disponibles, fecha_pago_proveedor, perfiles_asignados')
-        .is('estado', null) // ¡NUEVO! Solo trae las que no están archivadas
+        .is('estado', null)
         .order('id', { ascending: false });
 
     if (error) {
@@ -86,30 +116,29 @@ async function cargarCuentasGuardadas() {
 
     listElement.innerHTML = '';
     cuentas.forEach(item => {
-        let fechaProveedorStr = 'No definida';
-        if (item.fecha_pago_proveedor) {
-            const fecha = new Date(item.fecha_pago_proveedor + 'T00:00:00-05:00');
-            fechaProveedorStr = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        }
+        // ¡NUEVO! Usamos la función del contador
+        const vencimiento = calcularDiasRestantes(item.fecha_pago_proveedor);
 
         listElement.innerHTML += `
-            <li style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
-                <strong>Plataforma:</strong> ${item.plataforma.toUpperCase()} <br>
-                <strong>Email:</strong> ${item.email} | <strong>Contra:</strong> ${item.contrasena} <br>
+            <li class="stock-item">
+                <strong>${item.plataforma.toUpperCase()}</strong> <br>
+                <span>${item.email}</span><br>
                 <strong>Perfiles Libres:</strong> <span style="font-weight: bold; font-size: 1.2em; color: ${item.perfiles_disponibles > 0 ? 'green' : 'red'};">${item.perfiles_disponibles}</span> <br>
-                <strong>Pago Proveedor:</strong> <span style="color: blue;">${fechaProveedorStr}</span>
-                <br>
-                <button class="assign-btn" data-id="${item.id}" ${item.perfiles_disponibles === 0 ? 'disabled' : ''}>Asignar Perfil</button>
-                <button class="delete-btn" data-id="${item.id}">Borrar Cuenta</button>
-
-                <div style="margin-top: 10px; padding: 5px; background-color: #f9f9f9; border: 1px solid #ddd;">
+                
+                <strong>Vencimiento:</strong> <span style="color: ${vencimiento.color}; font-weight: bold;">${vencimiento.texto}</span>
+                <br><br>
+                
+                <button class="assign-btn" data-id="${item.id}" ${item.perfiles_disponibles === 0 ? 'disabled' : ''}>Asignar</button>
+                <button class="delete-btn" data-id="${item.id}">Borrar</button>
+                <div style="margin-top: 10px; padding: 5px; background-color: #fff; border-top: 1px solid #eee;">
                     <strong>Perfiles Asignados:</strong>
-                    <pre style="white-space: pre-wrap; margin: 0; font-family: monospace;">${item.perfiles_asignados || 'Ninguno'}</pre>
+                    <pre>${item.perfiles_asignados || 'Ninguno'}</pre>
                 </div>
             </li>
         `;
     });
 
+    // ... (el resto de las funciones de botones se quedan igual) ...
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', () => {
             borrarCuenta(button.dataset.id);
@@ -125,11 +154,13 @@ async function cargarCuentasGuardadas() {
     });
 }
 
-// Lógica del formulario de guardar (VERSIÓN 4 - igual pero se mantiene)
+// Lógica del formulario de guardar (VERSIÓN 4 - igual)
 const emailForm = document.getElementById('email-form');
 if (emailForm) {
     emailForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const button = e.target.querySelector('button');
+        button.disabled = true;
         
         const { error } = await supabase
             .from('correos_guardados')
@@ -139,7 +170,6 @@ if (emailForm) {
                 contrasena: document.getElementById('password-input').value, 
                 perfiles_disponibles: document.getElementById('perfiles-input').value,
                 fecha_pago_proveedor: document.getElementById('fecha-proveedor-input').value
-                // El 'estado' se queda 'null' (vacío) por defecto, ¡que es lo que queremos!
             });
 
         if (error) {
@@ -149,23 +179,20 @@ if (emailForm) {
             emailForm.reset();
             cargarCuentasGuardadas();
         }
+        button.disabled = false;
     });
 }
 
-// Función para Borrar Cuenta (VERSIÓN 2 - ¡AHORA ARCHIVA!)
+// Función para Borrar Cuenta (VERSIÓN 2 - Archiva)
 async function borrarCuenta(id) {
-    if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles aparecerán en la lista roja de prioridad.')) return;
-
-    // ¡¡YA NO BORRAMOS!! Ahora actualizamos el estado
+    if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre?')) return;
     const { error } = await supabase
         .from('correos_guardados')
-        .update({ estado: 'archivado' }) // La marcamos como archivada
+        .update({ estado: 'archivado' })
         .eq('id', id);
 
-    if (error) {
-        alert('Error al archivar: ' + error.message);
-    } else {
-        // Recargamos AMBAS listas
+    if (error) { alert('Error al archivar: ' + error.message); } 
+    else {
         cargarCuentasGuardadas();
         cargarCuentasArchivadas();
     }
@@ -186,7 +213,7 @@ CUENTA ${cuenta.plataforma.toUpperCase()}
 CORREO: ${cuenta.email}
 CONTRASEÑA: ${cuenta.contrasena}
 PERFIL: ${nombrePerfil}
-VENCE: ${venceFormateado}
+VENCE: ${vencimiento.texto} (Pago el ${cuenta.fecha_pago_proveedor})
     `.trim();
     
     const stringParaLista = `${nombrePerfil} (Vence: ${venceFormateado})`;
@@ -211,16 +238,12 @@ VENCE: ${venceFormateado}
     
     outputText.value = textoCliente; 
     outputArea.style.display = 'block';
-
-    // ¡¡AQUÍ ESTÁ LA SOLUCIÓN 1!!
-    // Hacemos que la página baje automáticamente al mensaje
     outputArea.scrollIntoView({ behavior: 'smooth' });
     
     cargarCuentasGuardadas();
 }
 
-// --- ¡¡NUEVA FUNCIÓN PARA TU IDEA (VERSIÓN 1)!! ---
-// Carga las cuentas archivadas en la lista roja
+// --- ¡NUEVA FUNCIÓN PARA TU IDEA (VERSIÓN 1)!! ---
 async function cargarCuentasArchivadas() {
     const listEl = document.getElementById('priority-list');
     const containerEl = document.getElementById('priority-list-container');
@@ -228,28 +251,25 @@ async function cargarCuentasArchivadas() {
     const { data, error } = await supabase
         .from('correos_guardados')
         .select('plataforma, perfiles_asignados')
-        .eq('estado', 'archivado'); // Solo trae las archivadas
+        .eq('estado', 'archivado');
 
     if (error) {
         console.error('Error cargando archivadas:', error);
         containerEl.style.display = 'none';
         return;
     }
-
     if (!data || data.length === 0) {
-        containerEl.style.display = 'none'; // Oculta la caja si no hay nada
+        containerEl.style.display = 'none';
         return;
     }
 
-    // Si encontramos, mostramos la caja roja
     containerEl.style.display = 'block';
     listEl.innerHTML = '';
-    
     data.forEach(item => {
         listEl.innerHTML += `
             <li style="color: #D8000C; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 5px;">
                 <strong>${item.plataforma.toUpperCase()} (CUENTA BORRADA)</strong>
-                <pre style="white-space: pre-wrap; margin: 0; font-family: monospace; color: #555;">${item.perfiles_asignados || 'Ninguno'}</pre>
+                <pre>${item.perfiles_asignados || 'Ninguno'}</pre>
             </li>
         `;
     });
