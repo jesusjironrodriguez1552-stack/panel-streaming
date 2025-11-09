@@ -16,7 +16,14 @@
     </header>
 
     <main>
-        <div class="form-container">
+        <div id="priority-list-container" class="form-container" style="display: none; border: 2px solid red; background-color: #fff6f6;">
+            <h3>⚠️ Cuentas Borradas (Perfiles Huérfanos)</h3>
+            <p>Estas cuentas fueron borradas, pero aún tienen perfiles asignados. ¡Atiéndelos!</p>
+            <ul id="priority-list">
+                </ul>
+        </div>
+
+        <div class="form-container" style="margin-top: 20px;">
             <h3>Añadir Nueva Cuenta (Stock)</h3>
             <form id="email-form">
                 
@@ -51,7 +58,7 @@
         </div>
 
         <div class="form-container" style="margin-top: 20px;">
-            <h3>Stock de Cuentas</h3>
+            <h3>Stock de Cuentas (Activas)</h3>
             <ul id="email-list">
                 <li>Cargando...</li>
             </ul>
