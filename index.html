@@ -22,36 +22,52 @@
                 </ul>
         </div>
 
-      <div id="add-stock-form" class="form-container">
-    <h3>Agregar Nueva Cuenta Madre</h3>
-    
-    <form id="stock-form">
-        <div class="form-group">
-            <label for="plataforma-select">Plataforma:</label>
-            <select id="plataforma-select" required>
-                <option value="">Cargando plataformas...</option>
-            </select>
+        <div class="form-container" style="margin-top: 20px;">
+            <h3>Paso 1: Registrar Cuenta Madre (Llavero)</h3>
+            <form id="cuenta-madre-form">
+                <div class="form-group">
+                    <label for="nombre-descriptivo">Nombre Descriptivo (para que la identifiques)</label>
+                    <input type="text" id="nombre-descriptivo" placeholder="Ej: Cuenta Crunchyroll #2" required>
+                </div>
+                <div class="form-group">
+                    <label for="datos-acceso">Datos de Acceso (Email:Clave)</label>
+                    <input type="text" id="datos-acceso" placeholder="cuenta@mail.com:clave123" required>
+                </div>
+                <div class="form-group">
+                    <label for="fecha-expiracion">Fecha de Expiración de la Cuenta</label>
+                    <input type="date" id="fecha-expiracion" required>
+                </div>
+                <button type="submit" id="save-cuenta-button">Guardar Cuenta Madre</button>
+                <p id="cuenta-message" class="success"></p>
+            </form>
         </div>
 
-        <div class="form-group">
-            <label for="datos-acceso">Datos de Acceso (Email:Clave)</label>
-            <input type="text" id="datos-acceso" placeholder="cuenta@mail.com:clave123" required>
-        </div>
+        <div class="form-container" style="margin-top: 20px;">
+            <h3>Paso 2: Registrar Perfiles en la Cuenta</h3>
+            <form id="perfil-form">
+                <div class="form-group">
+                    <label for="cuenta-madre-select">1. Selecciona la Cuenta Madre (Llavero):</label>
+                    <select id="cuenta-madre-select" required>
+                        <option value="">Cargando cuentas...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="plataforma-select">2. Selecciona el Producto (Plan):</label>
+                    <select id="plataforma-select" required>
+                        <option value="">Cargando plataformas...</option>
+                    </select>
+                </div>
 
-        <div class="form-group">
-            <label for="fecha-expiracion">Fecha de Expiración</label>
-            <input type="date" id="fecha-expiracion" required>
-        </div>
+                <div class="form-group">
+                    <label for="datos-perfil">3. Datos del Perfil (Ej: Perfil 1, PIN 1234)</label>
+                    <input type="text" id="datos-perfil" placeholder="Perfil 1, PIN 1234" required>
+                </div>
 
-        <div class="form-group">
-            <label for="cantidad-perfiles">Cantidad de Perfiles</label>
-            <input type="number" id="cantidad-perfiles" min="1" placeholder="Ej: 5" required>
+                <button type="submit" id="save-perfil-button">Guardar Perfil</button>
+                <p id="perfil-message" class="success"></p>
+            </form>
         </div>
-
-        <button type="submit" id="save-stock-button">Guardar Cuenta</button>
-        <p id="form-message" class="error"></p>
-    </form>
-</div>
 
     </main>
     
