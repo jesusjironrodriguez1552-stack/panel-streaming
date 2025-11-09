@@ -22,9 +22,36 @@
                 </ul>
         </div>
 
-        <div id="add-stock-form" class="form-container">
-            <h3>Agregar Nueva Cuenta Madre</h3>
-            </div>
+      <div id="add-stock-form" class="form-container">
+    <h3>Agregar Nueva Cuenta Madre</h3>
+    
+    <form id="stock-form">
+        <div class="form-group">
+            <label for="plataforma-select">Plataforma:</label>
+            <select id="plataforma-select" required>
+                <option value="">Cargando plataformas...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="datos-acceso">Datos de Acceso (Email:Clave)</label>
+            <input type="text" id="datos-acceso" placeholder="cuenta@mail.com:clave123" required>
+        </div>
+
+        <div class="form-group">
+            <label for="fecha-expiracion">Fecha de Expiración</label>
+            <input type="date" id="fecha-expiracion" required>
+        </div>
+
+        <div class="form-group">
+            <label for="cantidad-perfiles">Cantidad de Perfiles</label>
+            <input type="number" id="cantidad-perfiles" min="1" placeholder="Ej: 5" required>
+        </div>
+
+        <button type="submit" id="save-stock-button">Guardar Cuenta</button>
+        <p id="form-message" class="error"></p>
+    </form>
+</div>
 
     </main>
     
