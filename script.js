@@ -67,3 +67,115 @@ if (logoutButton) {
         window.location.href = 'login.html'
     })
 }
+
+// --- 5. LÓGICA DEL PANEL (FORMULARIO DE STOCK) ---
+
+// Solo ejecuta esto si estamos en index.html
+if (window.location.pathname.endsWith('/index.html') || window.location.pathname === '/') {
+    
+    // Función para cargar las plataformas en el <select>
+    async function cargarPlataformas() {
+        const select = document.getElementById('plataforma-select');
+        const { data, error } = await supabase
+            .from('plataformas')
+            .select('id, nombre');
+
+        if (error) {
+            console.error('Error cargando plataformas:', error);
+            select.innerHTML = '<option value="">Error al cargar</option>';
+            return;
+        }
+
+        select.innerHTML = '<option value="">-- Selecciona una plataforma --</option>';
+        data.forEach(plataforma => {
+            const option = document.createElement('option');
+            option.value = plataforma.id;
+            option.textContent = plataforma.nombre;
+            select.appendChild(option);
+        });
+    }
+    
+    // Llama a la función en cuanto cargue la página
+    cargarPlataformas();
+
+    // Ahora, la lógica del formulario
+    const stockForm = document.getElementById('stock-form');
+    const messageEl = document.getElementById('form-message');
+    const saveButton = document.getElementById('save-stock-button');
+
+    stockForm.addEventListener('submit', async (e) => {
+        e.preventDefault(); // Evita que la página se recargue
+
+        // 1. Deshabilitar el botón
+        saveButton.disabled = true;
+        saveButton.textContent = 'Guardando...';
+        messageEl.textContent = '';
+
+        // 2. Obtener los valores del formulario
+        const plataformaId = document.getElementById('plataforma-select').value;
+        const datosAcceso = document.getElementById('datos-acceso').value;
+        const fechaExpiracion = document.getElementById('fecha-expiracion').value;
+        const cantidadPerfiles = parseInt(document.getElementById('cantidad-perfiles').value);
+
+        // --- 3. LA MAGIA: Guardar en Supabase ---
+
+        // Paso A: Insertar la Cuenta Madre y pedir que nos devuelva el ID
+        const { data: cuentaMadre, error: errorMadre } = await supabase
+            .from('cuentas_madre')
+            .insert({
+                plataforma_id: plataformaId,
+                datos_acceso: datosAcceso,
+                fecha_expiracion: fechaExpiracion
+            })
+            .select('id') // ¡Importante! Pedimos que nos devuelva el ID
+            .single(); // .single() nos da el objeto directo y no un array
+
+        if (errorMadre) {
+            console.error('Error guardando cuenta madre:', errorMadre);
+            messageEl.textContent = 'Error: No se pudo guardar la cuenta madre.';
+            saveButton.disabled = false;
+            saveButton.textContent = 'Guardar Cuenta';
+            return; // Detiene la ejecución si falla
+        }
+
+        // ¡Éxito! Tenemos el ID de la nueva cuenta madre
+        const nuevaCuentaMadreId = cuentaMadre.id;
+
+        // Paso B: Preparar todos los perfiles que vamos a crear
+        const perfilesParaInsertar = [];
+        for (let i = 1; i <= cantidadPerfiles; i++) {
+            perfilesParaInsertar.push({
+                cuenta_madre_id: nuevaCuentaMadreId,
+                datos_perfil: `Perfil ${i}`, // Ej: "Perfil 1", "Perfil 2", etc.
+                estado: 'disponible', // ¡"Verde de libre" como dijiste!
+                cliente_id: null // Aún no tiene cliente
+            });
+        }
+
+        // Paso C: Insertar TODOS los perfiles de golpe
+        const { error: errorPerfiles } = await supabase
+            .from('perfiles_en_venta')
+            .insert(perfilesParaInsertar);
+
+        if (errorPerfiles) {
+            console.error('Error guardando perfiles:', errorPerfiles);
+            // Esto es un problema, porque la cuenta madre se creó pero los perfiles no.
+            // (Manejo de error avanzado se podría agregar después)
+            messageEl.textContent = 'Error: Cuenta madre creada, pero fallaron los perfiles.';
+            return;
+        }
+
+        // --- 4. TODO SALIÓ BIEN ---
+        messageEl.textContent = `¡Éxito! Cuenta madre y ${cantidadPerfiles} perfiles creados.`;
+        messageEl.className = 'success'; // (Agregaremos este estilo)
+        stockForm.reset(); // Limpia el formulario
+        
+        setTimeout(() => { // Limpia el mensaje después de 3 seg
+            messageEl.textContent = '';
+            messageEl.className = 'error';
+        }, 3000);
+
+        saveButton.disabled = false;
+        saveButton.textContent = 'Guardar Cuenta';
+    });
+}
