@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
+    <title>Dashboard Básico</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <h1>Mi Panel de Control</h1>
+        <h1>Mi Panel Básico</h1>
         <div class="user-info">
             <span id="user-email"></span>
             <button id="logout-button">Cerrar Sesión</button>
@@ -16,61 +16,26 @@
     </header>
 
     <main>
-        <div id="priority-list" class="priority-box">
-            <h3>Clientes Prioritarios (por Caídas)</h3>
-            <ul id="priority-client-list">
-                </ul>
-        </div>
-
-        <div class="form-container" style="margin-top: 20px;">
-            <h3>Paso 1: Registrar Cuenta Madre (Llavero)</h3>
-            <form id="cuenta-madre-form">
+        <div class="form-container">
+            <h3>Guardar un Correo Nuevo</h3>
+            <form id="email-form">
                 <div class="form-group">
-                    <label for="nombre-descriptivo">Nombre Descriptivo (para que la identifiques)</label>
-                    <input type="text" id="nombre-descriptivo" placeholder="Ej: Cuenta Crunchyroll #2" required>
+                    <label for="email-input">Correo:</label>
+                    <input type="email" id="email-input" placeholder="nuevo@correo.com" required>
                 </div>
-                <div class="form-group">
-                    <label for="datos-acceso">Datos de Acceso (Email:Clave)</label>
-                    <input type="text" id="datos-acceso" placeholder="cuenta@mail.com:clave123" required>
-                </div>
-                <div class="form-group">
-                    <label for="fecha-expiracion">Fecha de Expiración de la Cuenta</label>
-                    <input type="date" id="fecha-expiracion" required>
-                </div>
-                <button type="submit" id="save-cuenta-button">Guardar Cuenta Madre</button>
-                <p id="cuenta-message" class="success"></p>
+                <button type="submit">Guardar Correo</button>
+                <p id="form-message" class="success"></p>
             </form>
         </div>
 
         <div class="form-container" style="margin-top: 20px;">
-            <h3>Paso 2: Registrar Perfiles en la Cuenta</h3>
-            <form id="perfil-form">
-                <div class="form-group">
-                    <label for="cuenta-madre-select">1. Selecciona la Cuenta Madre (Llavero):</label>
-                    <select id="cuenta-madre-select" required>
-                        <option value="">Cargando cuentas...</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="plataforma-select">2. Selecciona el Producto (Plan):</label>
-                    <select id="plataforma-select" required>
-                        <option value="">Cargando plataformas...</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="datos-perfil">3. Datos del Perfil (Ej: Perfil 1, PIN 1234)</label>
-                    <input type="text" id="datos-perfil" placeholder="Perfil 1, PIN 1234" required>
-                </div>
-
-                <button type="submit" id="save-perfil-button">Guardar Perfil</button>
-                <p id="perfil-message" class="success"></p>
-            </form>
+            <h3>Correos Guardados en Supabase</h3>
+            <ul id="email-list">
+                <li>Cargando...</li>
+            </ul>
         </div>
 
     </main>
-    
     <script type="module" src="script.js"></script>
 </body>
 </html>
