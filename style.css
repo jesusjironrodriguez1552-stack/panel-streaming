@@ -1,463 +1,100 @@
-/* Variables de Colores */
-:root {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-card: #1e293b;
-    --bg-input: #334155;
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
-    --accent-primary: #3b82f6;
-    --accent-hover: #2563eb;
-    --accent-danger: #ef4444;
-    --accent-danger-hover: #dc2626;
-    --accent-success: #10b981;
-    --accent-warning: #f59e0b;
-    --border-color: #334155;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-}
-
-/* Estilos generales */
-* {
+/* --- Reseteo Básico --- */
+body, html {
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    background-color: #f4f7f6;
 }
 
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, var(--bg-primary) 0%, #1a2332 100%);
-    color: var(--text-primary);
-    min-height: 100vh;
-    line-height: 1.6;
+/* --- El Layout del Dashboard --- */
+.dashboard-container {
+    display: flex; /* La magia del layout de 2 columnas */
+    height: 100vh; /* Ocupa toda la altura */
 }
 
-/* Mensajes de Error y Éxito */
-.error {
-    color: var(--accent-danger);
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+/* --- 1. La Columna Fija (Sidebar) --- */
+.sidebar {
+    width: 350px; /* Ancho de tu columna */
+    background-color: #ffffff;
+    border-right: 1px solid #e0e0e0;
+    padding: 20px;
+    /* ¡Magia! */
+    height: 100vh; /* Altura total */
+    position: fixed; /* ¡Fija en su sitio! */
+    top: 0;
+    left: 0;
+    overflow-y: auto; /* Permite deslizarla si hay mucho contenido */
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
 }
-
-.error::before {
-    content: "⚠";
+.sidebar h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 10px;
 }
-
-.success {
-    color: var(--accent-success);
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.success::before {
-    content: "✓";
-}
-
-/* Estilos del Login */
-.login-container {
-    width: 100%;
-    max-width: 420px;
-    margin: 80px auto;
-    padding: 40px;
-    background: var(--bg-card);
-    border-radius: 16px;
-    box-shadow: var(--shadow-xl);
-    border: 1px solid var(--border-color);
-}
-
-.login-container h2 {
-    text-align: center;
-    margin-bottom: 30px;
-    color: var(--text-primary);
-    font-size: 1.875rem;
-    font-weight: 600;
-}
-
-/* Grupos de Formulario */
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    color: var(--text-secondary);
-    font-weight: 500;
-    font-size: 0.875rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.form-group input,
-.form-group select,
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-input[type="date"],
-textarea {
-    width: 100%;
-    padding: 12px 16px;
-    background-color: var(--bg-input) !important;
-    color: var(--text-primary) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 8px;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    outline: none;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-input:focus,
-textarea:focus {
-    border-color: var(--accent-primary) !important;
-    background-color: var(--bg-secondary) !important;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.form-group input::placeholder,
-input::placeholder,
-textarea::placeholder {
-    color: var(--text-muted);
-}
-
-/* Textarea específico */
-textarea {
-    resize: vertical;
-    min-height: 120px;
-}
-
-/* Botones */
-button {
-    width: 100%;
-    padding: 12px 24px;
-    background: linear-gradient(135deg, var(--accent-primary) 0%, #2563eb 100%);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-md);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-button:hover {
-    background: linear-gradient(135deg, var(--accent-hover) 0%, #1d4ed8 100%);
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-2px);
-}
-
-button:active {
-    transform: translateY(0);
-}
-
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-}
-
-/* Header del Panel */
-header {
-    background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a2332 100%);
-    color: white;
-    padding: 20px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: var(--shadow-lg);
-    border-bottom: 1px solid var(--border-color);
-}
-
-header h1 {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.user-info {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.user-info span {
-    color: var(--text-secondary);
-    font-weight: 500;
-    padding: 8px 16px;
-    background: var(--bg-input);
-    border-radius: 8px;
-    font-size: 0.875rem;
-}
-
-#logout-button {
-    width: auto;
-    padding: 10px 20px;
-    background: linear-gradient(135deg, var(--accent-danger) 0%, #dc2626 100%);
-    font-size: 0.875rem;
-}
-
-#logout-button:hover {
-    background: linear-gradient(135deg, var(--accent-danger-hover) 0%, #b91c1c 100%);
-}
-
-/* Contenido Principal */
-main {
-    padding: 40px;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-/* Caja de Prioridad / Alerta */
-#priority-list-container {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%) !important;
-    border: 2px solid var(--accent-danger) !important;
-    border-left: 4px solid var(--accent-danger) !important;
-    border-radius: 12px !important;
-    padding: 25px !important;
-    margin-bottom: 30px;
-    box-shadow: var(--shadow-md);
-}
-
-#priority-list-container h3 {
-    color: var(--accent-danger) !important;
-    margin-bottom: 15px;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-#priority-list-container p {
-    color: var(--text-secondary);
-    margin-bottom: 15px;
-    line-height: 1.6;
-}
-
-#priority-list-container ul {
-    list-style: none;
-    padding-left: 0;
-}
-
-#priority-list-container li {
-    background: var(--bg-input);
-    padding: 12px 16px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    border-left: 3px solid var(--accent-danger);
-    color: var(--text-primary);
-}
-
-/* Contenedor de Formulario */
-.form-container {
-    background: var(--bg-card) !important;
-    padding: 30px !important;
-    border-radius: 12px !important;
-    box-shadow: var(--shadow-lg) !important;
-    margin-top: 30px !important;
-    border: 1px solid var(--border-color) !important;
-}
-
-.form-container h3,
-.form-container h4 {
-    margin-bottom: 25px;
-    color: var(--text-primary);
-    font-size: 1.5rem;
-    font-weight: 600;
-    padding-bottom: 15px;
-    border-bottom: 2px solid var(--border-color);
-}
-
-.form-container h4 {
-    font-size: 1.25rem;
-}
-
-/* Listas dentro de form-container */
-.form-container ul {
-    list-style: none;
+/* La nueva lista de stock */
+#stock-list {
+    list-style-type: none;
     padding: 0;
 }
+.stock-item {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.stock-item strong {
+    color: #0056b3;
+    font-size: 1.1em;
+}
 
-.form-container ul li {
-    background: var(--bg-input);
-    padding: 15px 20px;
-    margin-bottom: 12px;
-    border-radius: 8px;
-    border-left: 3px solid var(--accent-primary);
-    color: var(--text-primary);
+/* --- 2. El Contenido Principal (Formularios) --- */
+.main-content {
+    /* ¡Magia! */
+    flex-grow: 1; /* Ocupa el resto del espacio */
+    margin-left: 350px; /* ¡IMPORTANTE! Mismo ancho que el sidebar */
+    padding: 20px;
+    overflow-y: auto; /* Permite deslizar el contenido principal */
+}
+
+/* --- Estilos de Componentes (los que ya tenías) --- */
+.header-bar {
+    background-color: #333;
+    color: white;
+    padding: 15px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: all 0.3s ease;
-}
-
-.form-container ul li:hover {
-    background: var(--bg-secondary);
-    transform: translateX(5px);
-}
-
-/* Botón de Eliminar */
-.delete-btn {
-    margin-left: 15px;
-    background: linear-gradient(135deg, var(--accent-danger) 0%, #dc2626 100%);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-size: 0.875rem;
-    cursor: pointer;
-    width: auto;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
-}
-
-.delete-btn:hover {
-    background: linear-gradient(135deg, var(--accent-danger-hover) 0%, #b91c1c 100%);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
-}
-
-.delete-btn:active {
-    transform: translateY(0);
-}
-
-/* Área de Output */
-#output-area {
-    margin-top: 30px;
-}
-
-#output-area h4 {
-    color: var(--accent-success);
-    margin-bottom: 15px;
-}
-
-/* Tablas (si las usas) */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background: var(--bg-card);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: var(--shadow-md);
-}
-
-table thead {
-    background: var(--bg-input);
-}
-
-table th {
-    padding: 15px;
-    text-align: left;
-    font-weight: 600;
-    color: var(--text-primary);
-    text-transform: uppercase;
-    font-size: 0.875rem;
-    letter-spacing: 0.5px;
-}
-
-table td {
-    padding: 15px;
-    border-top: 1px solid var(--border-color);
-    color: var(--text-secondary);
-}
-
-table tr:hover {
-    background: var(--bg-input);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .login-container {
-        margin: 40px 20px;
-        padding: 30px 20px;
-    }
-
-    header {
-        padding: 15px 20px;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    header h1 {
-        font-size: 1.25rem;
-    }
-
-    .user-info {
-        flex-direction: column;
-        gap: 10px;
-        width: 100%;
-    }
-
-    #logout-button {
-        width: 100%;
-    }
-
-    main {
-        padding: 20px;
-    }
-
-    .form-container {
-        padding: 20px !important;
-    }
-
-    .form-container ul li {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-
-    .delete-btn {
-        margin-left: 0;
-        width: 100%;
-    }
-}
-
-/* Scrollbar personalizada */
-::-webkit-scrollbar {
-    width: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: var(--bg-primary);
-}
-
-::-webkit-scrollbar-thumb {
-    background: var(--bg-input);
-    border-radius: 5px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: var(--border-color);
-}
-
-/* Animaciones */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    position: fixed; /* Fija el header */
+    top: 0;
+    left: 350px; /* Empieza después del sidebar */
+    right: 0;
+    z-index: 10;
 }
 
 .form-container {
-    animation: fadeIn 0.5s ease;
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    margin-top: 20px;
 }
+
+/* ... (El resto de tus estilos de botones, etc., van aquí) ... */
+/* Copiando los estilos que ya teníamos para que no se rompa nada */
+.user-info { display: flex; align-items: center; }
+.user-info span { margin-right: 15px; }
+#logout-button { width: auto; background-color: #dc3545; }
+#logout-button:hover { background-color: #c82333; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; }
+.form-group input, .form-group select { width: 100%; padding: 10px; box-sizing: border-box; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+button:hover { background-color: #0056b3; }
+button:disabled { background-color: #aaa; }
+.success { color: green; }
+.error { color: red; }
+.delete-btn { background-color: #dc3545; width: auto; padding: 5px 10px; font-size: 0.9em; }
+.assign-btn { background-color: #28a745; width: auto; padding: 5px 10px; font-size: 0.9em; }
+pre { white-space: pre-wrap; margin: 0; font-family: monospace; }
