@@ -82,3 +82,31 @@ main {
     color: #d46b08;
     margin-top: 0;
 }
+
+/* Estilos para el nuevo formulario de Stock */
+.form-container {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+.form-container h3 {
+    margin-top: 0;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box; /* Súper importante */
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Mensaje de éxito */
+.success {
+    color: green;
+}
