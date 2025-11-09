@@ -4,7 +4,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // --- 1. CONEXIÓN A SUPABASE ---
 // ¡¡USA TU NUEVA LLAVE ANON AQUÍ!!
 const SUPABASE_URL = 'https://izbiijrvwkuqfyxpoawb.supabase.co'
-const SUPABASE_KEY = 'AQUI_VA_TU_NUEVA_LLAVE_ANON'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4'
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // --- 2. EL "PORTERO" (Control de Sesión) ---
