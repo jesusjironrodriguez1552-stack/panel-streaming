@@ -1,127 +1,369 @@
+/* Variables de Colores */
+:root {
+    --bg-primary: #0f172a;
+    --bg-secondary: #1e293b;
+    --bg-card: #1e293b;
+    --bg-input: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --accent-primary: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-danger: #ef4444;
+    --accent-danger-hover: #dc2626;
+    --accent-success: #10b981;
+    --accent-warning: #f59e0b;
+    --border-color: #334155;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+
 /* Estilos generales */
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f0f2f5;
+* {
     margin: 0;
     padding: 0;
+    box-sizing: border-box;
 }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, #1a2332 100%);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+/* Mensajes de Error y Éxito */
 .error {
-    color: red;
-    font-size: 0.9em;
+    color: var(--accent-danger);
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.error::before {
+    content: "⚠";
+}
+
+.success {
+    color: var(--accent-success);
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.success::before {
+    content: "✓";
 }
 
 /* Estilos del Login */
 .login-container {
-    width: 300px;
-    margin: 100px auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 420px;
+    margin: 80px auto;
+    padding: 40px;
+    background: var(--bg-card);
+    border-radius: 16px;
+    box-shadow: var(--shadow-xl);
+    border: 1px solid var(--border-color);
 }
+
+.login-container h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--text-primary);
+    font-size: 1.875rem;
+    font-weight: 600;
+}
+
+/* Grupos de Formulario */
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
+
 .form-group label {
     display: block;
-    margin-bottom: 5px;
-}
-.form-group input {
-    width: 100%;
-    padding: 8px;
-    box-sizing: border-box; /* Importante para que el padding no rompa el ancho */
-}
-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-}
-button:hover {
-    background-color: #0056b3;
-}
-
-/* Estilos del Panel (Header) */
-header {
-    background-color: #333;
-    color: white;
-    padding: 15px 30px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.user-info {
-    display: flex;
-    align-items: center;
-}
-.user-info span {
-    margin-right: 15px;
-}
-#logout-button {
-    width: auto;
-    background-color: #dc3545;
-}
-#logout-button:hover {
-    background-color: #c82333;
-}
-
-/* Estilos del Panel (Contenido) */
-main {
-    padding: 20px;
-}
-.priority-box {
-    background-color: #fffbe6;
-    border: 1px solid #ffe58f;
-    border-radius: 5px;
-    padding: 15px;
-}
-.priority-box h3 {
-    color: #d46b08;
-    margin-top: 0;
-}
-
-/* Estilos para el nuevo formulario de Stock */
-.form-container {
-    background-color: #fff;
-    padding: 25px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    margin-top: 20px;
-}
-
-.form-container h3 {
-    margin-top: 0;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .form-group input,
 .form-group select {
     width: 100%;
-    padding: 10px;
-    box-sizing: border-box; /* Súper importante */
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    padding: 12px 16px;
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
 }
 
-/* Mensaje de éxito */
-.success {
-    color: green;
+.form-group input:focus,
+.form-group select:focus {
+    border-color: var(--accent-primary);
+    background-color: var(--bg-secondary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
-/* Estilo para el botón de borrar */
-.delete-btn {
-    margin-left: 15px;
-    background-color: #dc3545; /* Rojo */
+
+.form-group input::placeholder {
+    color: var(--text-muted);
+}
+
+/* Botones */
+button {
+    width: 100%;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, var(--accent-primary) 0%, #2563eb 100%);
     color: white;
     border: none;
-    border-radius: 4px;
-    padding: 3px 8px;
-    font-size: 0.9em;
+    border-radius: 8px;
     cursor: pointer;
-    width: auto; /* Anula el ancho de 100% de otros botones */
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-md);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
+
+button:hover {
+    background: linear-gradient(135deg, var(--accent-hover) 0%, #1d4ed8 100%);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Header del Panel */
+header {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a2332 100%);
+    color: white;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.user-info span {
+    color: var(--text-secondary);
+    font-weight: 500;
+    padding: 8px 16px;
+    background: var(--bg-input);
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+#logout-button {
+    width: auto;
+    padding: 10px 20px;
+    background: linear-gradient(135deg, var(--accent-danger) 0%, #dc2626 100%);
+    font-size: 0.875rem;
+}
+
+#logout-button:hover {
+    background: linear-gradient(135deg, var(--accent-danger-hover) 0%, #b91c1c 100%);
+}
+
+/* Contenido Principal */
+main {
+    padding: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Caja de Prioridad */
+.priority-box {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.1) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-left: 4px solid var(--accent-warning);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow-md);
+}
+
+.priority-box h3 {
+    color: var(--accent-warning);
+    margin-bottom: 10px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.priority-box h3::before {
+    content: "⚡";
+    font-size: 1.5rem;
+}
+
+.priority-box p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Contenedor de Formulario */
+.form-container {
+    background: var(--bg-card);
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    margin-top: 30px;
+    border: 1px solid var(--border-color);
+}
+
+.form-container h3 {
+    margin-bottom: 25px;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+/* Botón de Eliminar */
+.delete-btn {
+    margin-left: 15px;
+    background: linear-gradient(135deg, var(--accent-danger) 0%, #dc2626 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    cursor: pointer;
+    width: auto;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
 .delete-btn:hover {
-    background-color: #c82333;
+    background: linear-gradient(135deg, var(--accent-danger-hover) 0%, #b91c1c 100%);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.delete-btn:active {
+    transform: translateY(0);
+}
+
+/* Tablas (si las usas) */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+table thead {
+    background: var(--bg-input);
+}
+
+table th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    font-size: 0.875rem;
+    letter-spacing: 0.5px;
+}
+
+table td {
+    padding: 15px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+table tr:hover {
+    background: var(--bg-input);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .login-container {
+        margin: 40px 20px;
+        padding: 30px 20px;
+    }
+
+    header {
+        padding: 15px 20px;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .user-info {
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+    }
+
+    #logout-button {
+        width: 100%;
+    }
+
+    main {
+        padding: 20px;
+    }
+
+    .form-container {
+        padding: 20px;
+    }
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bg-input);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--border-color);
 }
