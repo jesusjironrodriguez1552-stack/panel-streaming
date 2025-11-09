@@ -14,59 +14,55 @@
             <button id="logout-button">Cerrar Sesión</button>
         </div>
     </header>
-
     <main>
-        <div id="priority-list-container" class="form-container" style="display: none; border: 2px solid red; background-color: #fff6f6;">
+        <!-- QUITÉ los estilos inline de aquí -->
+        <div id="priority-list-container" class="form-container" style="display: none;">
             <h3>⚠️ Cuentas Borradas (Perfiles Huérfanos)</h3>
             <p>Estas cuentas fueron borradas, pero aún tienen perfiles asignados. ¡Atiéndelos!</p>
-            <ul id="priority-list">
-                </ul>
+            <ul id="priority-list"></ul>
         </div>
 
-        <div class="form-container" style="margin-top: 20px;">
+        <!-- QUITÉ margin-top inline -->
+        <div class="form-container">
             <h3>Añadir Nueva Cuenta (Stock)</h3>
             <form id="email-form">
-                
                 <div class="form-group">
                     <label for="plataforma-input">Plataforma:</label>
                     <input type="text" id="plataforma-input" placeholder="Ej: NETFLIX PREMIUM" required>
                 </div>
-
                 <div class="form-group">
                     <label for="email-input">Correo:</label>
                     <input type="email" id="email-input" placeholder="nuevo@correo.com" required>
                 </div>
-
                 <div class="form-group">
                     <label for="password-input">Contraseña:</label>
                     <input type="text" id="password-input" placeholder="Clave123" required>
                 </div>
-
                 <div class="form-group">
                     <label for="perfiles-input">Perfiles Disponibles (Número):</label>
                     <input type="number" id="perfiles-input" min="1" placeholder="Ej: 5" required>
                 </div>
-
                 <div class="form-group">
                     <label for="fecha-proveedor-input">Fecha de Pago al Proveedor:</label>
                     <input type="date" id="fecha-proveedor-input" required>
                 </div>
-
                 <button type="submit">Guardar Cuenta</button>
                 <p id="form-message" class="success"></p>
             </form>
         </div>
 
-        <div class="form-container" style="margin-top: 20px;">
+        <!-- QUITÉ margin-top y style inline -->
+        <div class="form-container">
             <h3>Stock de Cuentas (Activas)</h3>
             <ul id="email-list">
                 <li>Cargando...</li>
             </ul>
         </div>
 
-        <div id="output-area" class="form-container" style="margin-top: 20px; display: none;">
+        <!-- QUITÉ margin-top inline -->
+        <div id="output-area" class="form-container" style="display: none;">
             <h4>¡Copia y pega esto para tu cliente!</h4>
-            <textarea id="output-text" rows="7" style="width: 100%; font-family: monospace;"></textarea>
+            <textarea id="output-text" rows="7"></textarea>
         </div>
     </main>
     
