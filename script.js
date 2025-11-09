@@ -1,9 +1,11 @@
+// IMPORTANTE: Importamos la librería de Supabase directamente desde la web
 // USA EL LINK CDN, ¡NO EL DE ESM.SH!
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
 // --- 1. CONEXIÓN A SUPABASE ---
 const SUPABASE_URL = 'https://izbiijrvwkuqfyxpoawb.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4' // ¡Pon tu llave anon!
+// ¡¡ATENCIÓN!! Pon tu llave 'anon' nueva aquí
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4' 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // --- 2. LÓGICA DE AUTENTICACIÓN (Login, Logout, Portero) ---
@@ -58,16 +60,16 @@ if (logoutButton) {
     })
 }
 
-// --- 3. LÓGICA DE LA APP (Guardar y Cargar Correos) ---
+// --- 3. LÓGICA DE LA APP (Guardar, Cargar y Borrar Correos) ---
 
-// Función para cargar los correos de la base de datos
+// Función para cargar los correos de la base de datos (¡MEJORADA!)
 async function cargarCorreosGuardados() {
     const listElement = document.getElementById('email-list');
     
-    // RLS ESTÁ DESACTIVADO, así que esto funcionará
+    // ¡IMPORTANTE! Ahora pedimos 'id' y 'email'
     const { data: correos, error } = await supabase
         .from('correos_guardados')
-        .select('email'); // Solo traemos el email
+        .select('id, email'); // Pedimos el ID para saber cuál borrar
 
     if (error) {
         console.error('Error cargando correos:', error);
@@ -80,10 +82,24 @@ async function cargarCorreosGuardados() {
         return;
     }
 
-    // Muestra los correos en la lista
+    // Muestra los correos en la lista (¡CON BOTÓN!)
     listElement.innerHTML = ''; // Limpia el "Cargando..."
     correos.forEach(item => {
-        listElement.innerHTML += `<li>${item.email}</li>`;
+        // Añadimos el botón con un data-id que guarda el ID del correo
+        listElement.innerHTML += `
+            <li>
+                ${item.email}
+                <button class="delete-btn" data-id="${item.id}">Borrar</button>
+            </li>
+        `;
+    });
+
+    // ¡NUEVO! Añadir "escuchas" a los botones que acabamos de crear
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const idParaBorrar = button.dataset.id; // Obtiene el ID del botón
+            borrarCorreo(idParaBorrar); // Llama a la nueva función de borrar
+        });
     });
 }
 
@@ -111,4 +127,25 @@ if (emailForm) {
             cargarCorreosGuardados(); // Recarga la lista
         }
     });
+}
+
+// --- NUEVA FUNCIÓN: Borrar un Correo ---
+async function borrarCorreo(id) {
+    // Pedimos confirmación
+    if (!confirm('¿Estás seguro de que quieres borrar este correo?')) {
+        return; // Si dice "Cancelar", no hace nada
+    }
+
+    const { error } = await supabase
+        .from('correos_guardados')
+        .delete() // ¡La magia de borrar!
+        .eq('id', id); // Le dice cuál borrar (donde el 'id' sea igual al 'id' del botón)
+
+    if (error) {
+        console.error('Error borrando correo:', error);
+        alert('Error al borrar: ' + error.message);
+    } else {
+        // ¡Éxito! Recargamos la lista para que desaparezca
+        cargarCorreosGuardados();
+    }
 }
