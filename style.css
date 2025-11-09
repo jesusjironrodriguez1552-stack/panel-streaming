@@ -100,27 +100,44 @@ body {
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+textarea {
     width: 100%;
     padding: 12px 16px;
-    background-color: var(--bg-input);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
+    background-color: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-color) !important;
     border-radius: 8px;
     font-size: 1rem;
     transition: all 0.3s ease;
     outline: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .form-group input:focus,
-.form-group select:focus {
-    border-color: var(--accent-primary);
-    background-color: var(--bg-secondary);
+.form-group select:focus,
+input:focus,
+textarea:focus {
+    border-color: var(--accent-primary) !important;
+    background-color: var(--bg-secondary) !important;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.form-group input::placeholder {
+.form-group input::placeholder,
+input::placeholder,
+textarea::placeholder {
     color: var(--text-muted);
+}
+
+/* Textarea específico */
+textarea {
+    resize: vertical;
+    min-height: 120px;
 }
 
 /* Botones */
@@ -207,54 +224,90 @@ main {
     margin: 0 auto;
 }
 
-/* Caja de Prioridad */
-.priority-box {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(217, 119, 6, 0.1) 100%);
-    border: 1px solid rgba(245, 158, 11, 0.3);
-    border-left: 4px solid var(--accent-warning);
-    border-radius: 12px;
-    padding: 20px;
+/* Caja de Prioridad / Alerta */
+#priority-list-container {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%) !important;
+    border: 2px solid var(--accent-danger) !important;
+    border-left: 4px solid var(--accent-danger) !important;
+    border-radius: 12px !important;
+    padding: 25px !important;
     margin-bottom: 30px;
     box-shadow: var(--shadow-md);
 }
 
-.priority-box h3 {
-    color: var(--accent-warning);
-    margin-bottom: 10px;
+#priority-list-container h3 {
+    color: var(--accent-danger) !important;
+    margin-bottom: 15px;
     font-size: 1.25rem;
     font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 10px;
 }
 
-.priority-box h3::before {
-    content: "⚡";
-    font-size: 1.5rem;
-}
-
-.priority-box p {
+#priority-list-container p {
     color: var(--text-secondary);
+    margin-bottom: 15px;
     line-height: 1.6;
+}
+
+#priority-list-container ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+#priority-list-container li {
+    background: var(--bg-input);
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent-danger);
+    color: var(--text-primary);
 }
 
 /* Contenedor de Formulario */
 .form-container {
-    background: var(--bg-card);
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: var(--shadow-lg);
-    margin-top: 30px;
-    border: 1px solid var(--border-color);
+    background: var(--bg-card) !important;
+    padding: 30px !important;
+    border-radius: 12px !important;
+    box-shadow: var(--shadow-lg) !important;
+    margin-top: 30px !important;
+    border: 1px solid var(--border-color) !important;
 }
 
-.form-container h3 {
+.form-container h3,
+.form-container h4 {
     margin-bottom: 25px;
     color: var(--text-primary);
     font-size: 1.5rem;
     font-weight: 600;
     padding-bottom: 15px;
     border-bottom: 2px solid var(--border-color);
+}
+
+.form-container h4 {
+    font-size: 1.25rem;
+}
+
+/* Listas dentro de form-container */
+.form-container ul {
+    list-style: none;
+    padding: 0;
+}
+
+.form-container ul li {
+    background: var(--bg-input);
+    padding: 15px 20px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border-left: 3px solid var(--accent-primary);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.3s ease;
+}
+
+.form-container ul li:hover {
+    background: var(--bg-secondary);
+    transform: translateX(5px);
 }
 
 /* Botón de Eliminar */
@@ -281,6 +334,16 @@ main {
 
 .delete-btn:active {
     transform: translateY(0);
+}
+
+/* Área de Output */
+#output-area {
+    margin-top: 30px;
+}
+
+#output-area h4 {
+    color: var(--accent-success);
+    margin-bottom: 15px;
 }
 
 /* Tablas (si las usas) */
@@ -331,6 +394,10 @@ table tr:hover {
         gap: 15px;
     }
 
+    header h1 {
+        font-size: 1.25rem;
+    }
+
     .user-info {
         flex-direction: column;
         gap: 10px;
@@ -346,7 +413,18 @@ table tr:hover {
     }
 
     .form-container {
-        padding: 20px;
+        padding: 20px !important;
+    }
+
+    .form-container ul li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .delete-btn {
+        margin-left: 0;
+        width: 100%;
     }
 }
 
@@ -366,4 +444,20 @@ table tr:hover {
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--border-color);
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.form-container {
+    animation: fadeIn 0.5s ease;
 }
