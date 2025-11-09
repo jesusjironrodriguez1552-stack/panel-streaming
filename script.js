@@ -21,8 +21,10 @@ async function checkAuth() {
         const userEmailElement = document.getElementById('user-email')
         if (userEmailElement) userEmailElement.textContent = `Conectado: ${session.user.email}`
         
+        // ¡ACTUALIZADO! Ahora carga ambas listas
         if (document.getElementById('email-list')) {
-            cargarCuentasGuardadas(); // ¡Cambiamos el nombre de la función!
+            cargarCuentasGuardadas(); // Carga las cuentas ACTIVAS
+            cargarCuentasArchivadas(); // Carga las cuentas BORRADAS (en rojo)
         }
     }
 }
@@ -61,14 +63,14 @@ function showMessage(element, text, isSuccess = true) {
     setTimeout(() => { el.textContent = ''; }, 3000);
 }
 
-// Función para cargar las cuentas (VERSIÓN 3)
+// Función para cargar las cuentas (VERSIÓN 4 - ¡Solo activas!)
 async function cargarCuentasGuardadas() {
     const listElement = document.getElementById('email-list');
     
-    // Pedimos las nuevas columnas
     const { data: cuentas, error } = await supabase
         .from('correos_guardados')
         .select('id, email, contrasena, plataforma, perfiles_disponibles, fecha_pago_proveedor, perfiles_asignados')
+        .is('estado', null) // ¡NUEVO! Solo trae las que no están archivadas
         .order('id', { ascending: false });
 
     if (error) {
@@ -82,14 +84,11 @@ async function cargarCuentasGuardadas() {
         return;
     }
 
-    // Muestra las cuentas en la lista (¡CON TODO!)
     listElement.innerHTML = '';
     cuentas.forEach(item => {
-        // Formatear la fecha del proveedor (si existe)
         let fechaProveedorStr = 'No definida';
         if (item.fecha_pago_proveedor) {
-            // Sumamos 1 día al parsear porque Supabase a veces lo da un día antes
-            const fecha = new Date(item.fecha_pago_proveedor + 'T00:00:00-05:00'); // Ajusta T00:00:00-05:00 a tu zona horaria si es necesario
+            const fecha = new Date(item.fecha_pago_proveedor + 'T00:00:00-05:00');
             fechaProveedorStr = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
 
@@ -111,14 +110,12 @@ async function cargarCuentasGuardadas() {
         `;
     });
 
-    // Añadir "escuchas" a los botones de BORRAR
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', () => {
             borrarCuenta(button.dataset.id);
         });
     });
 
-    // Añadir "escuchas" a los botones de ASIGNAR
     document.querySelectorAll('.assign-btn').forEach(button => {
         button.addEventListener('click', () => {
             const id = button.dataset.id;
@@ -128,7 +125,7 @@ async function cargarCuentasGuardadas() {
     });
 }
 
-// Lógica del formulario de guardar (VERSIÓN 3)
+// Lógica del formulario de guardar (VERSIÓN 4 - igual pero se mantiene)
 const emailForm = document.getElementById('email-form');
 if (emailForm) {
     emailForm.addEventListener('submit', async (e) => {
@@ -141,7 +138,8 @@ if (emailForm) {
                 email: document.getElementById('email-input').value, 
                 contrasena: document.getElementById('password-input').value, 
                 perfiles_disponibles: document.getElementById('perfiles-input').value,
-                fecha_pago_proveedor: document.getElementById('fecha-proveedor-input').value // ¡El nuevo campo!
+                fecha_pago_proveedor: document.getElementById('fecha-proveedor-input').value
+                // El 'estado' se queda 'null' (vacío) por defecto, ¡que es lo que queremos!
             });
 
         if (error) {
@@ -149,37 +147,40 @@ if (emailForm) {
         } else {
             showMessage('form-message', '¡Cuenta guardada con éxito!', true);
             emailForm.reset();
-            cargarCuentasGuardadas(); // Recarga la lista
+            cargarCuentasGuardadas();
         }
     });
 }
 
-// Función para Borrar Cuenta
+// Función para Borrar Cuenta (VERSIÓN 2 - ¡AHORA ARCHIVA!)
 async function borrarCuenta(id) {
-    if (!confirm('¿Seguro que quieres BORRAR esta cuenta madre?')) return;
+    if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles aparecerán en la lista roja de prioridad.')) return;
 
-    const { error } = await supabase.from('correos_guardados').delete().eq('id', id);
+    // ¡¡YA NO BORRAMOS!! Ahora actualizamos el estado
+    const { error } = await supabase
+        .from('correos_guardados')
+        .update({ estado: 'archivado' }) // La marcamos como archivada
+        .eq('id', id);
 
     if (error) {
-        alert('Error al borrar: ' + error.message);
+        alert('Error al archivar: ' + error.message);
     } else {
-        cargarCuentasGuardadas(); // Recarga la lista
+        // Recargamos AMBAS listas
+        cargarCuentasGuardadas();
+        cargarCuentasArchivadas();
     }
 }
 
-// --- ¡FUNCIÓN MÁGICA MEJORADA (VERSIÓN 3)! ---
+// --- ¡FUNCIÓN MÁGICA MEJORADA (VERSIÓN 4 - Con Scroll)! ---
 async function asignarPerfil(cuenta) {
-    // 1. Pedir el nombre del perfil
     const nombrePerfil = prompt('Escribe el nombre del perfil para el cliente:');
     if (!nombrePerfil) return; 
 
-    // 2. Calcular el nuevo stock y la fecha de vencimiento
     const nuevoStock = cuenta.perfiles_disponibles - 1;
     const hoy = new Date();
     const vence = new Date(hoy.setDate(hoy.getDate() + 30));
     const venceFormateado = vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    // 3. Crear el texto para el cliente Y el texto para la lista
     const textoCliente = `
 CUENTA ${cuenta.plataforma.toUpperCase()}
 CORREO: ${cuenta.email}
@@ -188,19 +189,15 @@ PERFIL: ${nombrePerfil}
 VENCE: ${venceFormateado}
     `.trim();
     
-    // Este es el string que guardaremos en la base de datos
     const stringParaLista = `${nombrePerfil} (Vence: ${venceFormateado})`;
-    
-    // Juntamos el perfil nuevo con los que ya existían
     const listaPerfilesAntigua = cuenta.perfiles_asignados || '';
     const nuevaListaPerfiles = (listaPerfilesAntigua + '\n' + stringParaLista).trim();
 
-    // 4. Actualizar la base de datos (¡ambos campos!)
     const { error } = await supabase
         .from('correos_guardados')
         .update({ 
-            perfiles_disponibles: nuevoStock, // Resta 1 al stock
-            perfiles_asignados: nuevaListaPerfiles // Añade el nuevo perfil a la lista
+            perfiles_disponibles: nuevoStock,
+            perfiles_asignados: nuevaListaPerfiles
         })
         .eq('id', cuenta.id);
 
@@ -209,12 +206,51 @@ VENCE: ${venceFormateado}
         return;
     }
 
-    // 5. Mostrar el resultado al admin
     const outputArea = document.getElementById('output-area');
     const outputText = document.getElementById('output-text');
     
     outputText.value = textoCliente; 
     outputArea.style.display = 'block';
+
+    // ¡¡AQUÍ ESTÁ LA SOLUCIÓN 1!!
+    // Hacemos que la página baje automáticamente al mensaje
+    outputArea.scrollIntoView({ behavior: 'smooth' });
     
-    cargarCuentasGuardadas(); // Recarga la lista
+    cargarCuentasGuardadas();
+}
+
+// --- ¡¡NUEVA FUNCIÓN PARA TU IDEA (VERSIÓN 1)!! ---
+// Carga las cuentas archivadas en la lista roja
+async function cargarCuentasArchivadas() {
+    const listEl = document.getElementById('priority-list');
+    const containerEl = document.getElementById('priority-list-container');
+    
+    const { data, error } = await supabase
+        .from('correos_guardados')
+        .select('plataforma, perfiles_asignados')
+        .eq('estado', 'archivado'); // Solo trae las archivadas
+
+    if (error) {
+        console.error('Error cargando archivadas:', error);
+        containerEl.style.display = 'none';
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        containerEl.style.display = 'none'; // Oculta la caja si no hay nada
+        return;
+    }
+
+    // Si encontramos, mostramos la caja roja
+    containerEl.style.display = 'block';
+    listEl.innerHTML = '';
+    
+    data.forEach(item => {
+        listEl.innerHTML += `
+            <li style="color: #D8000C; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 5px;">
+                <strong>${item.plataforma.toUpperCase()} (CUENTA BORRADA)</strong>
+                <pre style="white-space: pre-wrap; margin: 0; font-family: monospace; color: #555;">${item.perfiles_asignados || 'Ninguno'}</pre>
+            </li>
+        `;
+    });
 }
