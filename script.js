@@ -179,3 +179,105 @@ if (window.location.pathname.endsWith('/index.html') || window.location.pathname
         saveButton.textContent = 'Guardar Cuenta';
     });
 }
+// --- 5. LÓGICA NUEVA (PANEL FLEXIBLE) ---
+
+// Solo ejecuta esto si estamos en index.html
+if (window.location.pathname.endsWith('/index.html') || window.location.pathname === '/') {
+
+    // ----- Selectores de los nuevos formularios -----
+    const cuentaForm = document.getElementById('cuenta-madre-form');
+    const perfilForm = document.getElementById('perfil-form');
+
+    const cuentaMessage = document.getElementById('cuenta-message');
+    const perfilMessage = document.getElementById('perfil-message');
+
+    const cuentaSelect = document.getElementById('cuenta-madre-select');
+    const plataformaSelect = document.getElementById('plataforma-select');
+
+    // ----- Función para mostrar mensajes (la usaremos mucho) -----
+    function showMessage(element, text, isSuccess = true) {
+        element.textContent = text;
+        element.className = isSuccess ? 'success' : 'error';
+        setTimeout(() => { element.textContent = ''; }, 3000);
+    }
+
+    // ----- Función 1: Cargar Plataformas (Productos) -----
+    async function cargarPlataformas() {
+        const { data, error } = await supabase.from('plataformas').select('id, nombre');
+        if (error) {
+            console.error('Error cargando plataformas:', error);
+            plataformaSelect.innerHTML = '<option value="">Error al cargar</option>';
+            return;
+        }
+        plataformaSelect.innerHTML = '<option value="">-- Selecciona un producto --</option>';
+        data.forEach(p => {
+            plataformaSelect.innerHTML += `<option value="${p.id}">${p.nombre}</option>`;
+        });
+    }
+
+    // ----- Función 2: Cargar Cuentas Madre (Llaveros) -----
+    async function cargarCuentasMadre() {
+        // Usamos "nombre_descriptivo" para identificarla. ¡Asegúrate de haber creado esa columna!
+        // Si no la creaste, cambia 'nombre_descriptivo' por 'datos_acceso'
+        const { data, error } = await supabase.from('cuentas_madre').select('id, nombre_descriptivo');
+        if (error) {
+            console.error('Error cargando cuentas madre:', error);
+            cuentaSelect.innerHTML = '<option value="">Error al cargar</option>';
+            return;
+        }
+        cuentaSelect.innerHTML = '<option value="">-- Selecciona una cuenta madre --</option>';
+        data.forEach(c => {
+            cuentaSelect.innerHTML += `<option value="${c.id}">${c.nombre_descriptivo}</option>`;
+        });
+    }
+
+    // ----- Cargar los menús desplegables al iniciar -----
+    cargarPlataformas();
+    cargarCuentasMadre(); // Carga las cuentas madre existentes
+
+    // ----- Lógica del Formulario 1: Guardar Cuenta Madre -----
+    cuentaForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const button = document.getElementById('save-cuenta-button');
+        button.disabled = true;
+
+        const { error } = await supabase.from('cuentas_madre').insert({
+            nombre_descriptivo: document.getElementById('nombre-descriptivo').value,
+            datos_acceso: document.getElementById('datos-acceso').value,
+            fecha_expiracion: document.getElementById('fecha-expiracion').value
+        });
+
+        if (error) {
+            showMessage(cuentaMessage, `Error: ${error.message}`, false);
+        } else {
+            showMessage(cuentaMessage, '¡Cuenta Madre guardada!', true);
+            cuentaForm.reset();
+            cargarCuentasMadre(); // ¡Recarga el menú desplegable del otro formulario!
+        }
+        button.disabled = false;
+    });
+
+    // ----- Lógica del Formulario 2: Guardar Perfil -----
+    perfilForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const button = document.getElementById('save-perfil-button');
+        button.disabled = true;
+
+        const { error } = await supabase.from('perfiles_en_venta').insert({
+            cuenta_madre_id: document.getElementById('cuenta-madre-select').value,
+            plataforma_id: document.getElementById('plataforma-select').value,
+            datos_perfil: document.getElementById('datos-perfil').value,
+            estado: 'disponible', // ¡"Verde de libre"!
+            cliente_id: null
+        });
+
+        if (error) {
+            showMessage(perfilMessage, `Error: ${error.message}`, false);
+        } else {
+            showMessage(perfilMessage, '¡Perfil guardado y disponible!', true);
+            perfilForm.reset();
+            // Opcional: recargar contadores o listas de perfiles
+        }
+        button.disabled = false;
+    });
+}
