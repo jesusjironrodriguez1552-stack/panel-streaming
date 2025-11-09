@@ -3,7 +3,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // --- 1. CONEXIÓN A SUPABASE ---
 const SUPABASE_URL = 'https://izbiijrvwkuqfyxpoawb.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4' // ¡Pon tu llave anon!
+// ¡¡ATENCIÓN!! Pon tu llave 'anon' nueva aquí
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4' 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // --- 2. LÓGICA DE AUTENTICACIÓN (Login, Logout, Portero) ---
@@ -60,15 +61,15 @@ function showMessage(element, text, isSuccess = true) {
     setTimeout(() => { el.textContent = ''; }, 3000);
 }
 
-// Función para cargar las cuentas
+// Función para cargar las cuentas (VERSIÓN 3)
 async function cargarCuentasGuardadas() {
     const listElement = document.getElementById('email-list');
     
     // Pedimos las nuevas columnas
     const { data: cuentas, error } = await supabase
         .from('correos_guardados')
-        .select('id, email, contrasena, plataforma, perfiles_disponibles')
-        .order('id', { ascending: false }); // Muestra las más nuevas primero
+        .select('id, email, contrasena, plataforma, perfiles_disponibles, fecha_pago_proveedor, perfiles_asignados')
+        .order('id', { ascending: false });
 
     if (error) {
         console.error('Error cargando cuentas:', error);
@@ -81,17 +82,31 @@ async function cargarCuentasGuardadas() {
         return;
     }
 
-    // Muestra las cuentas en la lista
+    // Muestra las cuentas en la lista (¡CON TODO!)
     listElement.innerHTML = '';
     cuentas.forEach(item => {
+        // Formatear la fecha del proveedor (si existe)
+        let fechaProveedorStr = 'No definida';
+        if (item.fecha_pago_proveedor) {
+            // Sumamos 1 día al parsear porque Supabase a veces lo da un día antes
+            const fecha = new Date(item.fecha_pago_proveedor + 'T00:00:00-05:00'); // Ajusta T00:00:00-05:00 a tu zona horaria si es necesario
+            fechaProveedorStr = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
         listElement.innerHTML += `
             <li style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
                 <strong>Plataforma:</strong> ${item.plataforma.toUpperCase()} <br>
                 <strong>Email:</strong> ${item.email} | <strong>Contra:</strong> ${item.contrasena} <br>
-                <strong>Perfiles Libres:</strong> <span style="font-weight: bold; font-size: 1.2em; color: ${item.perfiles_disponibles > 0 ? 'green' : 'red'};">${item.perfiles_disponibles}</span>
+                <strong>Perfiles Libres:</strong> <span style="font-weight: bold; font-size: 1.2em; color: ${item.perfiles_disponibles > 0 ? 'green' : 'red'};">${item.perfiles_disponibles}</span> <br>
+                <strong>Pago Proveedor:</strong> <span style="color: blue;">${fechaProveedorStr}</span>
                 <br>
                 <button class="assign-btn" data-id="${item.id}" ${item.perfiles_disponibles === 0 ? 'disabled' : ''}>Asignar Perfil</button>
                 <button class="delete-btn" data-id="${item.id}">Borrar Cuenta</button>
+
+                <div style="margin-top: 10px; padding: 5px; background-color: #f9f9f9; border: 1px solid #ddd;">
+                    <strong>Perfiles Asignados:</strong>
+                    <pre style="white-space: pre-wrap; margin: 0; font-family: monospace;">${item.perfiles_asignados || 'Ninguno'}</pre>
+                </div>
             </li>
         `;
     });
@@ -107,14 +122,13 @@ async function cargarCuentasGuardadas() {
     document.querySelectorAll('.assign-btn').forEach(button => {
         button.addEventListener('click', () => {
             const id = button.dataset.id;
-            // Buscamos los datos de la cuenta que queremos asignar
             const cuenta = cuentas.find(c => c.id == id);
-            asignarPerfil(cuenta); // Llamamos a la nueva función de asignar
+            asignarPerfil(cuenta);
         });
     });
 }
 
-// Lógica del formulario de guardar
+// Lógica del formulario de guardar (VERSIÓN 3)
 const emailForm = document.getElementById('email-form');
 if (emailForm) {
     emailForm.addEventListener('submit', async (e) => {
@@ -126,7 +140,8 @@ if (emailForm) {
                 plataforma: document.getElementById('plataforma-input').value,
                 email: document.getElementById('email-input').value, 
                 contrasena: document.getElementById('password-input').value, 
-                perfiles_disponibles: document.getElementById('perfiles-input').value
+                perfiles_disponibles: document.getElementById('perfiles-input').value,
+                fecha_pago_proveedor: document.getElementById('fecha-proveedor-input').value // ¡El nuevo campo!
             });
 
         if (error) {
@@ -152,17 +167,41 @@ async function borrarCuenta(id) {
     }
 }
 
-// --- ¡NUEVA FUNCIÓN MÁGICA (Tu idea)! ---
+// --- ¡FUNCIÓN MÁGICA MEJORADA (VERSIÓN 3)! ---
 async function asignarPerfil(cuenta) {
     // 1. Pedir el nombre del perfil
     const nombrePerfil = prompt('Escribe el nombre del perfil para el cliente:');
-    if (!nombrePerfil) return; // Si cancela, no hace nada
+    if (!nombrePerfil) return; 
 
-    // 2. Restar 1 al stock
+    // 2. Calcular el nuevo stock y la fecha de vencimiento
     const nuevoStock = cuenta.perfiles_disponibles - 1;
+    const hoy = new Date();
+    const vence = new Date(hoy.setDate(hoy.getDate() + 30));
+    const venceFormateado = vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+    // 3. Crear el texto para el cliente Y el texto para la lista
+    const textoCliente = `
+CUENTA ${cuenta.plataforma.toUpperCase()}
+CORREO: ${cuenta.email}
+CONTRASEÑA: ${cuenta.contrasena}
+PERFIL: ${nombrePerfil}
+VENCE: ${venceFormateado}
+    `.trim();
+    
+    // Este es el string que guardaremos en la base de datos
+    const stringParaLista = `${nombrePerfil} (Vence: ${venceFormateado})`;
+    
+    // Juntamos el perfil nuevo con los que ya existían
+    const listaPerfilesAntigua = cuenta.perfiles_asignados || '';
+    const nuevaListaPerfiles = (listaPerfilesAntigua + '\n' + stringParaLista).trim();
+
+    // 4. Actualizar la base de datos (¡ambos campos!)
     const { error } = await supabase
         .from('correos_guardados')
-        .update({ perfiles_disponibles: nuevoStock }) // Actualiza el stock
+        .update({ 
+            perfiles_disponibles: nuevoStock, // Resta 1 al stock
+            perfiles_asignados: nuevaListaPerfiles // Añade el nuevo perfil a la lista
+        })
         .eq('id', cuenta.id);
 
     if (error) {
@@ -170,25 +209,12 @@ async function asignarPerfil(cuenta) {
         return;
     }
 
-    // 3. Generar el texto para el cliente (¡con fecha de 30 días!)
-    const hoy = new Date();
-    const vence = new Date(hoy.setDate(hoy.getDate() + 30));
-    const venceFormateado = vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-    const textoGenerado = `
-CUENTA ${cuenta.plataforma.toUpperCase()}
-CORREO: ${cuenta.email}
-CONTRASEÑA: ${cuenta.contrasena}
-PERFIL: ${nombrePerfil}
-VENCE: ${venceFormateado}
-    `;
-
-    // 4. Mostrar el resultado
+    // 5. Mostrar el resultado al admin
     const outputArea = document.getElementById('output-area');
     const outputText = document.getElementById('output-text');
     
-    outputText.value = textoGenerado.trim(); // .trim() quita espacios extra
-    outputArea.style.display = 'block'; // Muestra el área
+    outputText.value = textoCliente; 
+    outputArea.style.display = 'block';
     
-    cargarCuentasGuardadas(); // Recarga la lista para que muestre el nuevo stock
+    cargarCuentasGuardadas(); // Recarga la lista
 }
