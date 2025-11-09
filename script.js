@@ -1,5 +1,5 @@
 // IMPORTANTE: Importamos la librería de Supabase directamente desde la web
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
 
 // --- 1. CONEXIÓN A SUPABASE ---
 // ¡¡USA TU NUEVA LLAVE ANON AQUÍ!!
