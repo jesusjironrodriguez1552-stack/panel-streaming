@@ -4,41 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
+    <header>
+        <h1>Mi Panel de Control</h1>
+        <div class="user-info">
+            <span id="user-email"></span>
+            <button id="logout-button">Cerrar Sesión</button>
+        </div>
+    </header>
 
-    <div class="dashboard-container">
+    <nav class="tab-nav">
+        <button class="tab-button active" data-tab="gestion">Gestión de Cuentas</button>
+        <button class="tab-button" data-tab="perfiles">Control de Perfiles</button>
+        <button class="tab-button" data-tab="pagos">Control de Pagos</button>
+    </nav>
 
-        <nav class="sidebar">
-            <h3>Mi Stock de Cuentas</h3>
+    <main>
+        
+        <div id="gestion" class="tab-content active">
             
-            <ul id="stock-list">
-                <li>Cargando...</li>
-            </ul>
-        </nav>
-
-        <div class="main-content">
-
-            <header class="header-bar">
-                <h1>Mi Panel de Control</h1>
-                <div class="user-info">
-                    <span id="user-email"></span>
-                    <button id="logout-button">Cerrar Sesión</button>
-                </div>
-            </header>
-
-            <div style="height: 60px;"></div>
-
-            <div id="priority-list-container" class="form-container" style="display: none; border: 2px solid red; background-color: #fff6f6;">
-                <h3>⚠️ Cuentas Borradas (Perfiles Huérfanos)</h3>
-                <p>Estas cuentas fueron borradas. ¡Atiéndelos!</p>
-                <ul id="priority-list"></ul>
-            </div>
-
-            <div class="form-container" style="margin-top: 20px;">
-                <h3>Añadir Nueva Cuenta (Stock)</h3>
-                <form id="email-form">
+            <div class="form-container">
+                <h3>Añadir Nueva Cuenta Madre (Stock)</h3>
+                <form id="stock-form">
                     <div class="form-group">
                         <label for="plataforma-input">Plataforma:</label>
                         <input type="text" id="plataforma-input" placeholder="Ej: NETFLIX PREMIUM" required>
@@ -52,7 +41,7 @@
                         <input type="text" id="password-input" placeholder="Clave123" required>
                     </div>
                     <div class="form-group">
-                        <label for="perfiles-input">Perfiles Disponibles (Número):</label>
+                        <label for="perfiles-input">Cantidad de Perfiles (Número):</label>
                         <input type="number" id="perfiles-input" min="1" placeholder="Ej: 5" required>
                     </div>
                     <div class="form-group">
@@ -64,11 +53,41 @@
                 </form>
             </div>
 
-            <div id="output-area" class="form-container" style="margin-top: 20px; display: none;">
+            <div id="output-area" class="form-container" style="display: none;">
                 <h4>¡Copia y pega esto para tu cliente!</h4>
                 <textarea id="output-text" rows="7" style="width: 100%; font-family: monospace;"></textarea>
             </div>
+            
+            <div class="form-container" style="margin-top: 20px;">
+                <h3>Mis Cuentas Madre (Stock)</h3>
+                <ul id="cuentas-madre-list">
+                    <li>Cargando...</li>
+                </ul>
+            </div>
+        </div>
 
-        </div> </div> <script type="module" src="script.js"></script>
+        <div id="perfiles" class="tab-content">
+            <div class="form-container">
+                <h3>Todos los Perfiles</h3>
+                <p>Aquí verás una lista de todos los perfiles individuales y su estado.</p>
+                <ul id="perfiles-list">
+                    <li>Cargando...</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="pagos" class="tab-content">
+            <div class="form-container">
+                <h3>Control de Pagos a Proveedor</h3>
+                <p>Aquí verás las cuentas que están por vencer y debes pagar pronto.</p>
+                <ul id="pagos-list">
+                    <li>Cargando...</li>
+                </ul>
+            </div>
+        </div>
+
+    </main>
+    
+    <script type="module" src="script.js"></script>
 </body>
 </html>
