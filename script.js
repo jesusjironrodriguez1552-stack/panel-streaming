@@ -21,13 +21,14 @@ async function checkAuth() {
         const userEmailElement = document.getElementById('user-email')
         if (userEmailElement) userEmailElement.textContent = `Conectado: ${session.user.email}`
         
-        // ¡NUEVO! Carga el contenido de la pestaña activa
+        // ¡CORRECCIÓN! Llama a initApp() solo si hay sesión y estamos en index.html
         initApp(); 
     }
 }
+// Llama al portero en cuanto el script se carga
 checkAuth()
 
-// ... (El código de loginForm y logoutButton se queda exactamente igual) ...
+// --- Lógica de Login (en login.html) ---
 const loginForm = document.getElementById('login-form')
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
@@ -42,6 +43,8 @@ if (loginForm) {
         }
     })
 }
+
+// --- Lógica de Logout (en index.html) ---
 const logoutButton = document.getElementById('logout-button')
 if (logoutButton) {
     logoutButton.addEventListener('click', async () => {
@@ -172,7 +175,6 @@ async function cargarCuentasMadre() {
     const listElement = document.getElementById('cuentas-madre-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
-    // Traemos las cuentas y, de paso, contamos cuántos perfiles libres tiene cada una
     const { data: cuentas, error } = await supabase
         .from('cuentas_madre')
         .select(`
@@ -218,7 +220,7 @@ async function cargarCuentasMadre() {
         `;
     });
 
-    // --- Añadir "escuchas" a los botones ---
+    // --- ¡CORRECCIÓN! Añadir listeners DESPUÉS de crear los botones ---
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', () => {
             const id = button.dataset.id;
@@ -283,7 +285,7 @@ async function asignarPerfil(cuenta, tipo) {
         .eq('id', perfilLibre.id);
 
     if (updateError) {
-        alert('Error al asignar el perfil: ' + updateError.message);
+        alert('Error al asignar el perfil: 'M' + updateError.message);
         return;
     }
 
@@ -322,9 +324,6 @@ async function borrarCuenta(cuenta) {
         // --- BORRADO PERMANENTE ---
         if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Se borrarán todos sus perfiles)')) return;
         
-        // ¡CUIDADO! Borrar en Supabase borra en cascada si está configurado.
-        // Lo haremos manualmente para estar seguros.
-        
         // 1. Borrar perfiles
         await supabase.from('perfiles').delete().eq('cuenta_madre_id', cuenta.id);
         // 2. Borrar cuenta madre
@@ -357,7 +356,6 @@ async function cargarTodosLosPerfiles() {
     const listElement = document.getElementById('perfiles-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
-    // ¡Traemos los perfiles Y los datos de su cuenta madre!
     const { data: perfiles, error } = await supabase
         .from('perfiles')
         .select(`
@@ -381,7 +379,7 @@ async function cargarTodosLosPerfiles() {
     listElement.innerHTML = '';
     perfiles.forEach(perfil => {
         let estadoClass = `estado-${perfil.estado}`; // estado-libre, estado-asignado, etc.
-        let info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
+        let info = `Plataforma: ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'}`;
         
         if (perfil.estado === 'asignado') {
             const vence = new Date(perfil.fecha_vencimiento_cliente);
@@ -415,16 +413,19 @@ async function cargarControlDePagos() {
     
     // Calculamos la fecha de "próximos 7 días"
     const hoy = new Date();
-    const proximaSemana = new Date(hoy.setDate(hoy.getDate() + 7));
+    const proximaSemana = new Date(new Date().setDate(hoy.getDate() + 7));
 
     const { data: cuentas, error } = await supabase
         .from('cuentas_madre')
         .select('plataforma, email, fecha_pago_proveedor')
         .eq('estado', 'activa')
-        .lte('fecha_pago_proveedor', proximaSemana.toISOString()) // Que la fecha sea menor o igual a 7 días desde hoy
+        // Filtramos fechas que no son nulas y son menores o iguales a la próxima semana
+        .not('fecha_pago_proveedor', 'is', null)
+        .lte('fecha_pago_proveedor', proximaSemana.toISOString()) 
         .order('fecha_pago_proveedor', { ascending: true });
         
     if (error) {
+        console.error("Error cargando pagos:", error)
         listElement.innerHTML = '<li>Error al cargar pagos.</li>';
         return;
     }
