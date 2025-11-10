@@ -134,7 +134,6 @@ if (stockForm) {
                 cuenta_madre_id: nuevaCuentaMadreId,
                 nombre_perfil: `Perfil Libre ${i}`,
                 estado: 'libre',
-                cliente_id: null,
                 fecha_vencimiento_cliente: null
             });
         }
