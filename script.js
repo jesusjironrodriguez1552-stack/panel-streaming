@@ -303,7 +303,7 @@ async function borrarCuenta(cuenta) {
     } else {
         if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles se marcarán como "huérfanos".')) return;
 
-        await supabase.from('cuentas_madre').update({ estado: 'archivado' }).eq('id', cuenta.id);
+        await supabase.from('cuentas_madre').update({ estado: 'archivada' }).eq('id', cuenta.id);
         
         await supabase
             .from('perfiles')
