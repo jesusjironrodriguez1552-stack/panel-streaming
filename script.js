@@ -170,6 +170,7 @@ async function cargarCuentasMadre() {
 
     if (error) {
         listElement.innerHTML = '<li>Error al cargar cuentas.</li>';
+        console.error('Error cargando cuentas:', error);
         return;
     }
     if (cuentas.length === 0) {
@@ -177,11 +178,14 @@ async function cargarCuentasMadre() {
         return;
     }
 
+    console.log('Cuentas cargadas:', cuentas); // Para debug
+    
     listElement.innerHTML = '';
     cuentas.forEach(cuenta => {
+        console.log(`Cuenta ID ${cuenta.id} - Estado: "${cuenta.estado}"`); // Para debug
         const esArchivada = cuenta.estado === 'archivada';
         const itemClass = esArchivada ? 'stock-item-archivado' : 'stock-item';
-        const perfilesLibres = cuenta.perfiles.filter(p => p.estado === 'libre').length;
+        const perfilesLibres = cuenta.perfiles ? cuenta.perfiles.filter(p => p.estado === 'libre').length : 0;
         
         listElement.innerHTML += `
             <li class="${itemClass}">
@@ -295,22 +299,38 @@ async function borrarCuenta(cuenta) {
     if (cuenta.estado === 'archivada') {
         if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Se borrarán todos sus perfiles)')) return;
         
-        await supabase.from('perfiles').delete().eq('cuenta_madre_id', cuenta.id);
-        await supabase.from('cuentas_madre').delete().eq('id', cuenta.id);
+        const { error: errorPerfiles } = await supabase.from('perfiles').delete().eq('cuenta_madre_id', cuenta.id);
+        if (errorPerfiles) {
+            alert('Error al borrar perfiles: ' + errorPerfiles.message);
+            return;
+        }
         
+        const { error: errorCuenta } = await supabase.from('cuentas_madre').delete().eq('id', cuenta.id);
+        if (errorCuenta) {
+            alert('Error al borrar cuenta: ' + errorCuenta.message);
+            return;
+        }
+        
+        alert('Cuenta borrada permanentemente');
         cargarCuentasMadre();
 
     } else {
         if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles se marcarán como "huérfanos".')) return;
 
-        await supabase.from('cuentas_madre').update({ estado: 'archivada' }).eq('id', cuenta.id);
+        const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivada' }).eq('id', cuenta.id);
+        
+        if (errorUpdate) {
+            alert('Error al archivar cuenta: ' + errorUpdate.message);
+            return;
+        }
         
         await supabase
             .from('perfiles')
             .update({ estado: 'huerfano' })
             .eq('cuenta_madre_id', cuenta.id)
             .in('estado', ['libre', 'asignado']);
-            
+        
+        alert('Cuenta archivada. Presiona "Borrar" nuevamente para eliminarla permanentemente.');
         cargarCuentasMadre();
     }
 }
