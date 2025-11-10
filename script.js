@@ -21,11 +21,8 @@ async function checkAuth() {
         const userEmailElement = document.getElementById('user-email')
         if (userEmailElement) userEmailElement.textContent = `Conectado: ${session.user.email}`
         
-        // ¡ACTUALIZADO! Ahora carga ambas listas
-        if (document.getElementById('stock-list')) { // Busca la nueva lista del sidebar
-            cargarCuentasGuardadas(); // Carga las cuentas ACTIVAS
-            cargarCuentasArchivadas(); // Carga las cuentas BORRADAS (en rojo)
-        }
+        // ¡NUEVO! Carga el contenido de la pestaña activa
+        initApp(); 
     }
 }
 checkAuth()
@@ -53,95 +50,180 @@ if (logoutButton) {
     })
 }
 
+// --- 3. LÓGICA DE LA APP (¡NUEVA ESTRUCTURA DE PESTAÑAS!) ---
 
-// --- 3. LÓGICA DE LA APP (¡Tu idea!) ---
+// Función para inicializar la app (pestañas y carga de datos)
+function initApp() {
+    // Lógica de navegación de pestañas
+    const tabs = document.querySelectorAll('.tab-button');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            // 1. Quitar 'active' de todos
+            tabs.forEach(t => t.classList.remove('active'));
+            contents.forEach(c => c.classList.remove('active'));
+
+            // 2. Añadir 'active' al clickeado
+            tab.classList.add('active');
+            const targetContent = document.getElementById(tab.dataset.tab);
+            targetContent.classList.add('active');
+
+            // 3. Cargar el contenido de esa pestaña
+            loadTabContent(tab.dataset.tab);
+        });
+    });
+
+    // Cargar la primera pestaña por defecto
+    loadTabContent('gestion');
+}
+
+// Función que decide qué cargar según la pestaña
+function loadTabContent(tabName) {
+    if (tabName === 'gestion') {
+        cargarCuentasMadre();
+    } else if (tabName === 'perfiles') {
+        cargarTodosLosPerfiles();
+    } else if (tabName === 'pagos') {
+        cargarControlDePagos();
+    }
+}
 
 // Función para mostrar mensajes
 function showMessage(element, text, isSuccess = true) {
     const el = document.getElementById(element);
+    if (!el) return;
     el.textContent = text;
     el.className = isSuccess ? 'success' : 'error';
     setTimeout(() => { el.textContent = ''; }, 3000);
 }
 
-// --- ¡NUEVA FUNCIÓN! El contador de días ---
-function calcularDiasRestantes(fechaPago) {
-    if (!fechaPago) return { texto: 'No definida', color: 'grey' };
-    
-    // Sumamos 1 día al parsear porque Supabase a veces lo da un día antes
-    const fecha = new Date(fechaPago + 'T00:00:00-05:00'); 
-    
-    // Calculamos la fecha de vencimiento (pago + 30 días)
-    const fechaVencimiento = new Date(fecha.setDate(fecha.getDate() + 30));
-    const hoy = new Date();
-    
-    // Reseteamos las horas para comparar solo días
-    hoy.setHours(0,0,0,0);
-    fechaVencimiento.setHours(0,0,0,0);
+// --- PESTAÑA 1: GESTIÓN DE CUENTAS ---
 
-    const diffTiempo = fechaVencimiento.getTime() - hoy.getTime();
-    const diffDias = Math.ceil(diffTiempo / (1000 * 60 * 60 * 24));
+// Lógica del formulario de guardar (¡NUEVA LÓGICA!)
+const stockForm = document.getElementById('stock-form');
+if (stockForm) {
+    stockForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const button = e.target.querySelector('button');
+        button.disabled = true;
+        button.textContent = 'Guardando...';
 
-    if (diffDias < 0) {
-        return { texto: `Vencido (hace ${Math.abs(diffDias)} días)`, color: 'red' };
-    } else if (diffDias === 0) {
-        return { texto: '¡Vence HOY!', color: 'red' };
-    } else if (diffDias <= 5) {
-        return { texto: `Vence en ${diffDias} días`, color: 'orange' };
-    } else {
-        return { texto: `Vence en ${diffDias} días`, color: 'green' };
-    }
+        // 1. Datos del formulario
+        const plataforma = document.getElementById('plataforma-input').value;
+        const email = document.getElementById('email-input').value;
+        const contrasena = document.getElementById('password-input').value;
+        const cantidadPerfiles = parseInt(document.getElementById('perfiles-input').value);
+        const fechaPago = document.getElementById('fecha-proveedor-input').value;
+
+        // 2. Insertar la Cuenta Madre
+        const { data: cuentaMadre, error: errorMadre } = await supabase
+            .from('cuentas_madre')
+            .insert({ 
+                plataforma: plataforma,
+                email: email, 
+                contrasena: contrasena, 
+                fecha_pago_proveedor: fechaPago,
+                estado: 'activa' // ¡Estado inicial!
+            })
+            .select('id') // ¡Importante! Pedimos que nos devuelva el ID
+            .single();
+
+        if (errorMadre) {
+            showMessage('form-message', 'Error: ' + errorMadre.message, false);
+            button.disabled = false;
+            button.textContent = 'Guardar Cuenta';
+            return;
+        }
+
+        // 3. ¡Éxito! Ahora creamos los perfiles "libres"
+        const nuevaCuentaMadreId = cuentaMadre.id;
+        const perfilesParaInsertar = [];
+        
+        for (let i = 1; i <= cantidadPerfiles; i++) {
+            perfilesParaInsertar.push({
+                cuenta_madre_id: nuevaCuentaMadreId,
+                nombre_perfil: `Perfil Libre ${i}`,
+                estado: 'libre',
+                cliente_id: null,
+                fecha_vencimiento_cliente: null
+            });
+        }
+
+        const { error: errorPerfiles } = await supabase
+            .from('perfiles')
+            .insert(perfilesParaInsertar);
+
+        if (errorPerfiles) {
+            showMessage('form-message', 'Error creando perfiles: ' + errorPerfiles.message, false);
+        } else {
+            showMessage('form-message', '¡Cuenta y perfiles guardados con éxito!', true);
+            stockForm.reset();
+            cargarCuentasMadre(); // Recarga la lista
+        }
+        
+        button.disabled = false;
+        button.textContent = 'Guardar Cuenta';
+    });
 }
 
-// Función para cargar las cuentas (VERSIÓN 5 - ¡Con contador y en el Sidebar!)
-async function cargarCuentasGuardadas() {
-    const listElement = document.getElementById('stock-list'); // ¡Cambiado!
+// Cargar la lista de Cuentas Madre (Pestaña 1)
+async function cargarCuentasMadre() {
+    const listElement = document.getElementById('cuentas-madre-list');
+    listElement.innerHTML = '<li>Cargando...</li>';
     
+    // Traemos las cuentas y, de paso, contamos cuántos perfiles libres tiene cada una
     const { data: cuentas, error } = await supabase
-        .from('correos_guardados')
-        .select('id, email, contrasena, plataforma, perfiles_disponibles, fecha_pago_proveedor, perfiles_asignados')
-        .is('estado', null)
+        .from('cuentas_madre')
+        .select(`
+            *,
+            perfiles ( id, estado )
+        `)
         .order('id', { ascending: false });
 
     if (error) {
-        console.error('Error cargando cuentas:', error);
-        listElement.innerHTML = '<li>Error al cargar.</li>';
+        listElement.innerHTML = '<li>Error al cargar cuentas.</li>';
         return;
     }
-
     if (cuentas.length === 0) {
         listElement.innerHTML = '<li>No hay cuentas guardadas.</li>';
         return;
     }
 
     listElement.innerHTML = '';
-    cuentas.forEach(item => {
-        // ¡NUEVO! Usamos la función del contador
-        const vencimiento = calcularDiasRestantes(item.fecha_pago_proveedor);
-
+    cuentas.forEach(cuenta => {
+        const esArchivada = cuenta.estado === 'archivada';
+        const itemClass = esArchivada ? 'stock-item-archivado' : 'stock-item';
+        
+        // Contamos los perfiles libres
+        const perfilesLibres = cuenta.perfiles.filter(p => p.estado === 'libre').length;
+        
         listElement.innerHTML += `
-            <li class="stock-item">
-                <strong>${item.plataforma.toUpperCase()}</strong> <br>
-                <span>${item.email}</span><br>
-                <strong>Perfiles Libres:</strong> <span style="font-weight: bold; font-size: 1.2em; color: ${item.perfiles_disponibles > 0 ? 'green' : 'red'};">${item.perfiles_disponibles}</span> <br>
-                
-                <strong>Vencimiento:</strong> <span style="color: ${vencimiento.color}; font-weight: bold;">${vencimiento.texto}</span>
+            <li class="${itemClass}">
+                <strong>${cuenta.plataforma.toUpperCase()}</strong>
+                ${esArchivada ? ' <span style="color:red; font-weight:bold;">(ARCHIVADA)</span>' : ''}
+                <br>
+                <span>${cuenta.email} | ${cuenta.contrasena}</span><br>
+                <strong>Perfiles Libres:</strong> <span style="font-weight: bold; color: ${perfilesLibres > 0 ? 'green' : 'red'};">${perfilesLibres}</span>
                 <br><br>
                 
-                <button class="assign-btn" data-id="${item.id}" ${item.perfiles_disponibles === 0 ? 'disabled' : ''}>Asignar</button>
-                <button class="delete-btn" data-id="${item.id}">Borrar</button>
-                <div style="margin-top: 10px; padding: 5px; background-color: #fff; border-top: 1px solid #eee;">
-                    <strong>Perfiles Asignados:</strong>
-                    <pre>${item.perfiles_asignados || 'Ninguno'}</pre>
-                </div>
+                ${!esArchivada ? `
+                    <button class="btn-small assign-btn" data-id="${cuenta.id}" ${perfilesLibres === 0 ? 'disabled' : ''}>Asignar (Nuevo)</button>
+                    <button class="btn-small reactiva-btn" data-id="${cuenta.id}" ${perfilesLibres === 0 ? 'disabled' : ''}>Asignar (Reactiva)</button>
+                    <button class="btn-small delete-btn" data-id="${cuenta.id}">Borrar</button>
+                ` : `
+                    <button class="btn-small delete-btn" data-id="${cuenta.id}">Borrar (Definitivo)</button>
+                `}
             </li>
         `;
     });
 
-    // ... (el resto de las funciones de botones se quedan igual) ...
+    // --- Añadir "escuchas" a los botones ---
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', () => {
-            borrarCuenta(button.dataset.id);
+            const id = button.dataset.id;
+            const cuenta = cuentas.find(c => c.id == id);
+            borrarCuenta(cuenta);
         });
     });
 
@@ -149,127 +231,217 @@ async function cargarCuentasGuardadas() {
         button.addEventListener('click', () => {
             const id = button.dataset.id;
             const cuenta = cuentas.find(c => c.id == id);
-            asignarPerfil(cuenta);
+            asignarPerfil(cuenta, 'nuevo');
+        });
+    });
+    
+    document.querySelectorAll('.reactiva-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const id = button.dataset.id;
+            const cuenta = cuentas.find(c => c.id == id);
+            asignarPerfil(cuenta, 'reactiva');
         });
     });
 }
 
-// Lógica del formulario de guardar (VERSIÓN 4 - igual)
-const emailForm = document.getElementById('email-form');
-if (emailForm) {
-    emailForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const button = e.target.querySelector('button');
-        button.disabled = true;
-        
-        const { error } = await supabase
-            .from('correos_guardados')
-            .insert({ 
-                plataforma: document.getElementById('plataforma-input').value,
-                email: document.getElementById('email-input').value, 
-                contrasena: document.getElementById('password-input').value, 
-                perfiles_disponibles: document.getElementById('perfiles-input').value,
-                fecha_pago_proveedor: document.getElementById('fecha-proveedor-input').value
-            });
-
-        if (error) {
-            showMessage('form-message', 'Error: ' + error.message, false);
-        } else {
-            showMessage('form-message', '¡Cuenta guardada con éxito!', true);
-            emailForm.reset();
-            cargarCuentasGuardadas();
-        }
-        button.disabled = false;
-    });
-}
-
-// Función para Borrar Cuenta (VERSIÓN 2 - Archiva)
-async function borrarCuenta(id) {
-    if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre?')) return;
-    const { error } = await supabase
-        .from('correos_guardados')
-        .update({ estado: 'archivado' })
-        .eq('id', id);
-
-    if (error) { alert('Error al archivar: ' + error.message); } 
-    else {
-        cargarCuentasGuardadas();
-        cargarCuentasArchivadas();
-    }
-}
-
-// --- ¡FUNCIÓN MÁGICA MEJORADA (VERSIÓN 4 - Con Scroll)! ---
-async function asignarPerfil(cuenta) {
+// Función para Asignar Perfil (¡NUEVA LÓGICA!)
+async function asignarPerfil(cuenta, tipo) {
     const nombrePerfil = prompt('Escribe el nombre del perfil para el cliente:');
-    if (!nombrePerfil) return; 
+    if (!nombrePerfil) return;
+    
+    // (Opcional: aquí podríamos mostrar una lista de clientes para elegir)
+    // Por ahora, asumimos que el cliente se maneja manualmente
 
-    const nuevoStock = cuenta.perfiles_disponibles - 1;
+    // 1. Buscar el primer perfil "libre" de esta cuenta
+    const { data: perfilLibre, error: findError } = await supabase
+        .from('perfiles')
+        .select('id')
+        .eq('cuenta_madre_id', cuenta.id)
+        .eq('estado', 'libre')
+        .limit(1)
+        .single();
+    
+    if (findError || !perfilLibre) {
+        alert('Error: No se encontró un perfil libre para esta cuenta.');
+        return;
+    }
+
+    // 2. Calcular fecha de vencimiento (hoy + 30 días)
     const hoy = new Date();
     const vence = new Date(hoy.setDate(hoy.getDate() + 30));
     const venceFormateado = vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    
+    // 3. Actualizar el perfil
+    const { error: updateError } = await supabase
+        .from('perfiles')
+        .update({
+            nombre_perfil: nombrePerfil,
+            estado: 'asignado',
+            fecha_vencimiento_cliente: vence.toISOString()
+            // cliente_id: ... (aquí iría el ID del cliente)
+        })
+        .eq('id', perfilLibre.id);
 
-    const textoCliente = `
+    if (updateError) {
+        alert('Error al asignar el perfil: ' + updateError.message);
+        return;
+    }
+
+    // 4. Generar el texto para el cliente
+    let textoCliente = '';
+    if (tipo === 'nuevo') {
+        textoCliente = `
 CUENTA ${cuenta.plataforma.toUpperCase()}
 CORREO: ${cuenta.email}
 CONTRASEÑA: ${cuenta.contrasena}
 PERFIL: ${nombrePerfil}
-VENCE: ${vencimiento.texto} (Pago el ${cuenta.fecha_pago_proveedor})
-    `.trim();
-    
-    const stringParaLista = `${nombrePerfil} (Vence: ${venceFormateado})`;
-    const listaPerfilesAntigua = cuenta.perfiles_asignados || '';
-    const nuevaListaPerfiles = (listaPerfilesAntigua + '\n' + stringParaLista).trim();
-
-    const { error } = await supabase
-        .from('correos_guardados')
-        .update({ 
-            perfiles_disponibles: nuevoStock,
-            perfiles_asignados: nuevaListaPerfiles
-        })
-        .eq('id', cuenta.id);
-
-    if (error) {
-        alert('Error al actualizar el stock: ' + error.message);
-        return;
+VENCE: ${venceFormateado}
+        `.trim();
+    } else {
+        textoCliente = `
+POR SU SEGURIDAD SE A MODIFICADO EL CORREO DE SU CUENTA:
+CORREO: ${cuenta.email}
+CONTRASEÑA: ${cuenta.contrasena}
+PERFIL: ${nombrePerfil}
+        `.trim();
     }
 
+    // 5. Mostrar resultado y recargar
     const outputArea = document.getElementById('output-area');
     const outputText = document.getElementById('output-text');
-    
     outputText.value = textoCliente; 
     outputArea.style.display = 'block';
     outputArea.scrollIntoView({ behavior: 'smooth' });
     
-    cargarCuentasGuardadas();
+    cargarCuentasMadre(); // Recarga la lista de cuentas
 }
 
-// --- ¡NUEVA FUNCIÓN PARA TU IDEA (VERSIÓN 1)!! ---
-async function cargarCuentasArchivadas() {
-    const listEl = document.getElementById('priority-list');
-    const containerEl = document.getElementById('priority-list-container');
+// Función para Borrar/Archivar Cuenta (¡NUEVA LÓGICA!)
+async function borrarCuenta(cuenta) {
+    if (cuenta.estado === 'archivada') {
+        // --- BORRADO PERMANENTE ---
+        if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Se borrarán todos sus perfiles)')) return;
+        
+        // ¡CUIDADO! Borrar en Supabase borra en cascada si está configurado.
+        // Lo haremos manualmente para estar seguros.
+        
+        // 1. Borrar perfiles
+        await supabase.from('perfiles').delete().eq('cuenta_madre_id', cuenta.id);
+        // 2. Borrar cuenta madre
+        await supabase.from('cuentas_madre').delete().eq('id', cuenta.id);
+        
+        cargarCuentasMadre();
+
+    } else {
+        // --- ARCHIVADO (Pone perfiles "huérfanos") ---
+        if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles se marcarán como "huérfanos".')) return;
+
+        // 1. Archivar la cuenta madre
+        await supabase.from('cuentas_madre').update({ estado: 'archivado' }).eq('id', cuenta.id);
+        
+        // 2. Poner todos sus perfiles "libres" o "asignados" como "huerfano"
+        await supabase
+            .from('perfiles')
+            .update({ estado: 'huerfano' })
+            .eq('cuenta_madre_id', cuenta.id)
+            .in('estado', ['libre', 'asignado']);
+            
+        cargarCuentasMadre(); // Recarga la lista actual
+    }
+}
+
+
+// --- PESTAÑA 2: CONTROL DE PERFILES ---
+
+async function cargarTodosLosPerfiles() {
+    const listElement = document.getElementById('perfiles-list');
+    listElement.innerHTML = '<li>Cargando...</li>';
     
-    const { data, error } = await supabase
-        .from('correos_guardados')
-        .select('plataforma, perfiles_asignados')
-        .eq('estado', 'archivado');
+    // ¡Traemos los perfiles Y los datos de su cuenta madre!
+    const { data: perfiles, error } = await supabase
+        .from('perfiles')
+        .select(`
+            id,
+            nombre_perfil,
+            estado,
+            fecha_vencimiento_cliente,
+            cuentas_madre ( plataforma, email )
+        `)
+        .order('id', { ascending: false });
 
     if (error) {
-        console.error('Error cargando archivadas:', error);
-        containerEl.style.display = 'none';
+        listElement.innerHTML = '<li>Error al cargar perfiles.</li>';
         return;
     }
-    if (!data || data.length === 0) {
-        containerEl.style.display = 'none';
+    if (perfiles.length === 0) {
+        listElement.innerHTML = '<li>No hay perfiles en el sistema.</li>';
         return;
     }
 
-    containerEl.style.display = 'block';
-    listEl.innerHTML = '';
-    data.forEach(item => {
-        listEl.innerHTML += `
-            <li style="color: #D8000C; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin-bottom: 5px;">
-                <strong>${item.plataforma.toUpperCase()} (CUENTA BORRADA)</strong>
-                <pre>${item.perfiles_asignados || 'Ninguno'}</pre>
+    listElement.innerHTML = '';
+    perfiles.forEach(perfil => {
+        let estadoClass = `estado-${perfil.estado}`; // estado-libre, estado-asignado, etc.
+        let info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
+        
+        if (perfil.estado === 'asignado') {
+            const vence = new Date(perfil.fecha_vencimiento_cliente);
+            info = `Vence: ${vence.toLocaleDateString('es-ES')}`;
+            
+            // Revisar si está vencido
+            if (vence < new Date()) {
+                perfil.estado = 'vencido'; // Corregimos el estado
+                estadoClass = 'estado-vencido';
+            }
+        }
+        
+        listElement.innerHTML += `
+            <li class="perfil-item">
+                <div>
+                    <strong>${perfil.nombre_perfil}</strong> <br>
+                    <small>${info}</small>
+                </div>
+                <span class="perfil-estado ${estadoClass}">${perfil.estado.toUpperCase()}</span>
+            </li>
+        `;
+    });
+}
+
+
+// --- PESTAÑA 3: CONTROL DE PAGOS ---
+
+async function cargarControlDePagos() {
+    const listElement = document.getElementById('pagos-list');
+    listElement.innerHTML = '<li>Cargando...</li>';
+    
+    // Calculamos la fecha de "próximos 7 días"
+    const hoy = new Date();
+    const proximaSemana = new Date(hoy.setDate(hoy.getDate() + 7));
+
+    const { data: cuentas, error } = await supabase
+        .from('cuentas_madre')
+        .select('plataforma, email, fecha_pago_proveedor')
+        .eq('estado', 'activa')
+        .lte('fecha_pago_proveedor', proximaSemana.toISOString()) // Que la fecha sea menor o igual a 7 días desde hoy
+        .order('fecha_pago_proveedor', { ascending: true });
+        
+    if (error) {
+        listElement.innerHTML = '<li>Error al cargar pagos.</li>';
+        return;
+    }
+    if (cuentas.length === 0) {
+        listElement.innerHTML = '<li>No hay pagos por vencer en los próximos 7 días.</li>';
+        return;
+    }
+    
+    listElement.innerHTML = '';
+    cuentas.forEach(cuenta => {
+        const fechaPago = new Date(cuenta.fecha_pago_proveedor + 'T00:00:00-05:00');
+        const fechaFormateada = fechaPago.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        
+        listElement.innerHTML += `
+            <li class="stock-item-archivado"> <strong>${cuenta.plataforma.toUpperCase()}</strong><br>
+                <span>Email: ${cuenta.email}</span><br>
+                <strong style="color: red;">¡PAGAR ANTES DE: ${fechaFormateada}!</strong>
             </li>
         `;
     });
