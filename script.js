@@ -285,7 +285,8 @@ async function asignarPerfil(cuenta, tipo) {
         .eq('id', perfilLibre.id);
 
     if (updateError) {
-        alert('Error al asignar el perfil: 'M' + updateError.message);
+        // ¡¡¡AQUÍ ESTABA EL ERROR!!! Se borró la 'M'
+        alert('Error al asignar el perfil: ' + updateError.message); 
         return;
     }
 
