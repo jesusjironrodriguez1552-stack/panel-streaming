@@ -3,7 +3,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // --- 1. CONEXIÓN A SUPABASE ---
 const SUPABASE_URL = 'https://izbiijrvwkuqfyxpoawb.supabase.co'
-// ¡¡ATENCIÓN!! Pon tu llave 'anon' NUEVA aquí
+// ¡¡ATENCIÓN!! Pon tu llave 'anon' NUEVA (la que acabas de generar) aquí
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4' 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
@@ -35,7 +35,7 @@ if (loginForm) {
         const password = document.getElementById('password').value
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) {
-            document.getElementById('error-message').textContent = 'Error: 'M' + error.message
+            document.getElementById('error-message').textContent = 'Error: ' + error.message
         } else {
             window.location.href = 'index.html'
         }
@@ -168,8 +168,8 @@ async function cargarCuentasMadre() {
         .order('id', { ascending: false });
 
     if (error) {
-        listElement.innerHTML = '<li>Error al cargar cuentas.</li>';
-        console.error('Error cargando cuentas:', error);
+        listElement.innerHTML = '<li>Error al cargar cuentas. Revisa la consola (F12).</li>';
+        console.error('Error cargando cuentas madre:', error); // ¡Error aquí!
         return;
     }
     if (cuentas.length === 0) {
@@ -371,7 +371,8 @@ async function cargarTodosLosPerfiles() {
         .order('id', { ascending: false });
 
     if (error) {
-        listElement.innerHTML = '<li>Error al cargar perfiles.</li>';
+        listElement.innerHTML = '<li>Error al cargar perfiles. Revisa la consola (F12).</li>';
+        console.error('Error cargando perfiles:', error); // ¡Error aquí!
         return;
     }
     if (perfiles.length === 0) {
