@@ -3,7 +3,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // --- 1. CONEXIÓN A SUPABASE ---
 const SUPABASE_URL = 'https://izbiijrvwkuqfyxpoawb.supabase.co'
-// ¡¡ATENCIÓN!! Pon tu llave 'anon' NUEVA aquí
+// ¡¡ATENCIÓN!! Pon tu llave 'anon' NUEVA (la que acabas de generar) aquí
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4' 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
@@ -168,8 +168,8 @@ async function cargarCuentasMadre() {
         .order('id', { ascending: false });
 
     if (error) {
-        listElement.innerHTML = '<li>Error al cargar cuentas.</li>';
-        console.error('Error cargando cuentas:', error);
+        listElement.innerHTML = '<li>Error al cargar cuentas. Revisa la consola (F12).</li>';
+        console.error('Error cargando cuentas madre:', error); 
         return;
     }
     if (cuentas.length === 0) {
@@ -292,7 +292,7 @@ PERFIL: ${nombrePerfil}
 }
 
 // ==========================================================
-// ¡¡AQUÍ ESTÁ LA LÓGICA CORREGIDA!!
+// ¡¡AQUÍ ESTÁ LA LÓGICA CORREGIDA A TU PETICIÓN!!
 // ==========================================================
 async function borrarCuenta(cuenta) {
     if (cuenta.estado === 'archivada') {
@@ -300,7 +300,7 @@ async function borrarCuenta(cuenta) {
         if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Los perfiles huérfanos NO se borrarán)')) return;
         
         // ¡¡CORRECCIÓN!! Solo borramos la cuenta madre.
-        // La base de datos (si está en 'Set Null') se encargará de los perfiles.
+        // La base de datos (con 'Set Null') se encargará de los perfiles huérfanos.
         const { error: errorCuenta } = await supabase.from('cuentas_madre').delete().eq('id', cuenta.id);
         
         if (errorCuenta) {
@@ -310,34 +310,42 @@ async function borrarCuenta(cuenta) {
         
         alert('Cuenta madre borrada permanentemente. Los perfiles huérfanos se mantienen.');
         cargarCuentasMadre();
-        // Deberíamos recargar la pestaña de perfiles si está activa
+        // Recargamos la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
             cargarTodosLosPerfiles();
         }
 
     } else {
         // --- ARCHIVADO (Pone perfiles "huérfanos") ---
-        if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles se marcarán como "huérfanos".')) return;
+        if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles asignados se marcarán como "huérfanos" y los libres se borrarán.')) return;
 
         // 1. Archivar la cuenta madre
-        const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivada' }).eq('id', cuenta.id);
+        const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivado' }).eq('id', cuenta.id);
         
         if (errorUpdate) {
             alert('Error al archivar cuenta: ' + errorUpdate.message);
             return;
         }
         
-        // 2. Poner todos sus perfiles "libres" o "asignados" como "huerfano"
+        // 2. ¡CORRECCIÓN! Poner ASIGNADOS como "huerfano"
         // (Esto es clave para tu Pestaña de Perfiles)
         await supabase
             .from('perfiles')
             .update({ estado: 'huerfano' })
             .eq('cuenta_madre_id', cuenta.id)
-            .in('estado', ['libre', 'asignado']);
+            .eq('estado', 'asignado'); // ¡Solo los asignados!
+
+        // 3. ¡CORRECCIÓN! Borrar los "libres"
+        // (Como dijiste, un perfil libre no es un huérfano)
+        await supabase
+            .from('perfiles')
+            .delete()
+            .eq('cuenta_madre_id', cuenta.id)
+            .eq('estado', 'libre'); // ¡Borra los libres!
             
-        alert('Cuenta archivada. Sus perfiles ahora son "huérfanos". Presiona "Borrar (Definitivo)" para eliminar la cuenta madre.');
+        alert('Cuenta archivada. Perfiles asignados marcados como "huérfanos". Perfiles libres eliminados.');
         cargarCuentasMadre();
-        // Deberíamos recargar la pestaña de perfiles si está activa
+        // Recargamos la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
             cargarTodosLosPerfiles();
         }
@@ -365,7 +373,8 @@ async function cargarTodosLosPerfiles() {
         .order('id', { ascending: false });
 
     if (error) {
-        listElement.innerHTML = '<li>Error al cargar perfiles.</li>';
+        listElement.innerHTML = '<li>Error al cargar perfiles. Revisa la consola (F12).</li>';
+        console.error('Error cargando perfiles:', error); // ¡Error aquí!
         return;
     }
     if (perfiles.length === 0) {
@@ -383,6 +392,8 @@ async function cargarTodosLosPerfiles() {
             info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
         } else if (perfil.estado === 'huerfano') {
             info = '¡CUENTA MADRE ELIMINADA!';
+        } else if (perfil.estado === 'libre') {
+            info = `Plataforma: ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'}`;
         }
 
         if (perfil.estado === 'asignado') {
