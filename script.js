@@ -3,7 +3,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // --- 1. CONEXIÓN A SUPABASE ---
 const SUPABASE_URL = 'https://izbiijrvwkuqfyxpoawb.supabase.co'
-// ¡¡ATENCIÓN!! Pon tu llave 'anon' nueva aquí
+// ¡¡ATENCIÓN!! Pon tu llave 'anon' NUEVA aquí
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4' 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
@@ -176,12 +176,9 @@ async function cargarCuentasMadre() {
         listElement.innerHTML = '<li>No hay cuentas guardadas.</li>';
         return;
     }
-
-    console.log('Cuentas cargadas:', cuentas); // Para debug
     
     listElement.innerHTML = '';
     cuentas.forEach(cuenta => {
-        console.log(`Cuenta ID ${cuenta.id} - Estado: "${cuenta.estado}"`); // Para debug
         const esArchivada = cuenta.estado === 'archivada';
         const itemClass = esArchivada ? 'stock-item-archivado' : 'stock-item';
         const perfilesLibres = cuenta.perfiles ? cuenta.perfiles.filter(p => p.estado === 'libre').length : 0;
@@ -294,28 +291,35 @@ PERFIL: ${nombrePerfil}
     cargarCuentasMadre();
 }
 
+// ==========================================================
+// ¡¡AQUÍ ESTÁ LA LÓGICA CORREGIDA!!
+// ==========================================================
 async function borrarCuenta(cuenta) {
     if (cuenta.estado === 'archivada') {
-        if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Se borrarán todos sus perfiles)')) return;
+        // --- BORRADO PERMANENTE ---
+        if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Los perfiles huérfanos NO se borrarán)')) return;
         
-        const { error: errorPerfiles } = await supabase.from('perfiles').delete().eq('cuenta_madre_id', cuenta.id);
-        if (errorPerfiles) {
-            alert('Error al borrar perfiles: ' + errorPerfiles.message);
-            return;
-        }
-        
+        // ¡¡CORRECCIÓN!! Solo borramos la cuenta madre.
+        // La base de datos (si está en 'Set Null') se encargará de los perfiles.
         const { error: errorCuenta } = await supabase.from('cuentas_madre').delete().eq('id', cuenta.id);
+        
         if (errorCuenta) {
             alert('Error al borrar cuenta: ' + errorCuenta.message);
             return;
         }
         
-        alert('Cuenta borrada permanentemente');
+        alert('Cuenta madre borrada permanentemente. Los perfiles huérfanos se mantienen.');
         cargarCuentasMadre();
+        // Deberíamos recargar la pestaña de perfiles si está activa
+        if (document.getElementById('perfiles').classList.contains('active')) {
+            cargarTodosLosPerfiles();
+        }
 
     } else {
+        // --- ARCHIVADO (Pone perfiles "huérfanos") ---
         if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles se marcarán como "huérfanos".')) return;
 
+        // 1. Archivar la cuenta madre
         const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivada' }).eq('id', cuenta.id);
         
         if (errorUpdate) {
@@ -323,14 +327,20 @@ async function borrarCuenta(cuenta) {
             return;
         }
         
+        // 2. Poner todos sus perfiles "libres" o "asignados" como "huerfano"
+        // (Esto es clave para tu Pestaña de Perfiles)
         await supabase
             .from('perfiles')
             .update({ estado: 'huerfano' })
             .eq('cuenta_madre_id', cuenta.id)
             .in('estado', ['libre', 'asignado']);
-        
-        alert('Cuenta archivada. Presiona "Borrar" nuevamente para eliminarla permanentemente.');
+            
+        alert('Cuenta archivada. Sus perfiles ahora son "huérfanos". Presiona "Borrar (Definitivo)" para eliminar la cuenta madre.');
         cargarCuentasMadre();
+        // Deberíamos recargar la pestaña de perfiles si está activa
+        if (document.getElementById('perfiles').classList.contains('active')) {
+            cargarTodosLosPerfiles();
+        }
     }
 }
 
@@ -341,6 +351,8 @@ async function cargarTodosLosPerfiles() {
     const listElement = document.getElementById('perfiles-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
+    // ¡¡CORRECCIÓN!! Ahora la información de la cuenta madre PUEDE SER NULA
+    // por eso el 'cuentas_madre!inner(...)' se cambia a 'cuentas_madre(...)'
     const { data: perfiles, error } = await supabase
         .from('perfiles')
         .select(`
@@ -348,7 +360,7 @@ async function cargarTodosLosPerfiles() {
             nombre_perfil,
             estado,
             fecha_vencimiento_cliente,
-            cuentas_madre ( plataforma, email )
+            cuentas_madre ( plataforma, email ) 
         `)
         .order('id', { ascending: false });
 
@@ -364,15 +376,26 @@ async function cargarTodosLosPerfiles() {
     listElement.innerHTML = '';
     perfiles.forEach(perfil => {
         let estadoClass = `estado-${perfil.estado}`;
-        let info = `Plataforma: ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'}`;
+        let info = '';
         
+        // ¡¡CORRECCIÓN!! Manejar perfiles huérfanos que ya no tienen cuenta madre
+        if (perfil.cuentas_madre) {
+            info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
+        } else if (perfil.estado === 'huerfano') {
+            info = '¡CUENTA MADRE ELIMINADA!';
+        }
+
         if (perfil.estado === 'asignado') {
             const vence = new Date(perfil.fecha_vencimiento_cliente);
-            info = `Vence: ${vence.toLocaleDateString('es-ES')}`;
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0); // Resetear hora para comparar
             
-            if (vence < new Date()) {
-                perfil.estado = 'vencido';
+            if (vence < hoy) {
+                perfil.estado = 'vencido'; // Corregimos el estado
                 estadoClass = 'estado-vencido';
+                info = `¡Vencido! (Era de ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'})`;
+            } else {
+                 info = `Vence: ${vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
             }
         }
         
