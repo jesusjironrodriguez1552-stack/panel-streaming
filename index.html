@@ -73,13 +73,31 @@
 
         <div id="perfiles" class="tab-content">
             <h2>👤 Control de Perfiles</h2>
+
+            <div class="perfiles-header">
+                <div class="stock-summary">
+                    <span class="stock-item-summary">
+                        🔴 Vencidos: <strong id="perfiles-vencidos">...</strong>
+                    </span>
+                    <span class="stock-item-summary">
+                        🟠 Vencen Hoy: <strong id="perfiles-hoy">...</strong>
+                    </span>
+                    <span class="stock-item-summary">
+                        🟡 Vencen Pronto (3 días): <strong id="perfiles-pronto">...</strong>
+                    </span>
+                </div>
+                
+                <div class="search-container">
+                    <input type="text" id="perfiles-search-input" placeholder="🔍 Buscar por nombre...">
+                </div>
+            </div>
             <ul id="perfiles-list" class="perfiles-list-container">
                 <li>Cargando perfiles...</li>
             </ul>
         </div>
 
         <div id="pagos" class="tab-content">
-            <h2>💰 Control de Pagos (Próximos 7 días)</h2>
+            <h2>💰 Control de Pagos (Próximos 30 días)</h2>
             <ul id="pagos-list" class="stock-list">
                 <li>Cargando pagos...</li>
             </ul>
