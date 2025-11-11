@@ -1,12 +1,10 @@
 //
-// --- gestionPerfiles.js ---
+// --- gestionPerfiles.js (CORREGIDO CON CONSUMO DE PERFIL) ---
 //
 import { supabase } from './supabaseClient.js'
-// Importamos AMBAS funciones de utils.js
 import { showMessage, mostrarMensajeCliente } from './utils.js'
 
 // --- 4.1: LÓGICA DE LA PESTAÑA (Cargar Lista) ---
-
 export async function cargarTodosLosPerfiles() {
     const listElement = document.getElementById('perfiles-list');
     listElement.innerHTML = '<li>Cargando...</li>';
@@ -24,7 +22,7 @@ export async function cargarTodosLosPerfiles() {
 
     if (error) {
         listElement.innerHTML = '<li>Error al cargar perfiles.</li>';
-        console.error('Error cargando perfiles:', error);
+        console.error("Error cargando perfiles:", error);
         return;
     }
     if (perfiles.length === 0) {
@@ -36,7 +34,7 @@ export async function cargarTodosLosPerfiles() {
     perfiles.forEach(perfil => {
         let estadoClass = `estado-${perfil.estado}`;
         let info = '';
-        let estadoReal = perfil.estado; // Estado para mostrar
+        let estadoReal = perfil.estado; 
 
         if (perfil.cuentas_madre) {
             info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
@@ -52,7 +50,7 @@ export async function cargarTodosLosPerfiles() {
             hoy.setHours(0,0,0,0);
             
             if (vence < hoy) {
-                estadoReal = 'vencido'; // Corregimos el estado visualmente
+                estadoReal = 'vencido'; 
                 estadoClass = 'estado-vencido';
                 info = `¡Vencido! (Era de ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'})`;
             } else {
@@ -60,7 +58,6 @@ export async function cargarTodosLosPerfiles() {
             }
         }
         
-        // Convertimos la fecha a formato YYYY-MM-DD para el input[type=date]
         const fechaParaInput = perfil.fecha_vencimiento_cliente ? new Date(perfil.fecha_vencimiento_cliente).toISOString().split('T')[0] : '';
 
         listElement.innerHTML += `
@@ -85,7 +82,6 @@ export async function cargarTodosLosPerfiles() {
         `;
     });
 
-    // Añadir listeners para los nuevos botones de "Editar"
     document.querySelectorAll('.edit-perfil-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             abrirModalEditar(e.currentTarget.dataset);
@@ -94,15 +90,12 @@ export async function cargarTodosLosPerfiles() {
 }
 
 // --- 4.2: LÓGICA DE EDITAR PERFIL (El Lápiz) ---
-
-// Esta función se llamará desde main.js para activar el formulario del modal
 export function initGestionPerfiles() {
     const editForm = document.getElementById('edit-perfil-form');
     if (editForm) {
         editForm.addEventListener('submit', guardarCambiosPerfil);
     }
     
-    // Listener para el botón de cerrar modal de EDICIÓN
     const editCloseBtn = document.getElementById('modal-edit-close');
     if(editCloseBtn) {
         editCloseBtn.addEventListener('click', () => {
@@ -110,7 +103,6 @@ export function initGestionPerfiles() {
         });
     }
 
-    // Listener para el botón de cerrar modal de RESCATE
     const rescateCloseBtn = document.getElementById('modal-rescate-close');
     if(rescateCloseBtn) {
         rescateCloseBtn.addEventListener('click', () => {
@@ -120,13 +112,11 @@ export function initGestionPerfiles() {
 }
 
 function abrirModalEditar(perfilData) {
-    // Llenamos el formulario del modal con los datos del perfil
     document.getElementById('edit-perfil-id').value = perfilData.id;
     document.getElementById('edit-perfil-nombre').value = perfilData.nombre;
     document.getElementById('edit-perfil-estado').value = perfilData.estado;
     document.getElementById('edit-perfil-fecha').value = perfilData.fecha;
     
-    // Mostramos el modal
     document.getElementById('modal-editar-perfil').style.display = 'flex';
 }
 
@@ -136,13 +126,11 @@ async function guardarCambiosPerfil(e) {
     button.disabled = true;
     button.textContent = 'Guardando...';
 
-    // Leemos los datos actualizados del formulario
     const id = document.getElementById('edit-perfil-id').value;
     const nombre_perfil = document.getElementById('edit-perfil-nombre').value;
     const estado = document.getElementById('edit-perfil-estado').value;
     let fecha_vencimiento_cliente = document.getElementById('edit-perfil-fecha').value;
 
-    // Si el estado es 'libre' o 'huerfano', la fecha no tiene sentido
     if (estado === 'libre' || estado === 'huerfano') {
         fecha_vencimiento_cliente = null;
     }
@@ -159,10 +147,7 @@ async function guardarCambiosPerfil(e) {
     if (error) {
         alert('Error al guardar cambios: ' + error.message);
     } else {
-        // Cerramos el modal
         document.getElementById('modal-editar-perfil').style.display = 'none';
-        
-        // Disparamos un evento para que main.js refresque la vista
         window.dispatchEvent(new CustomEvent('refrescarVista'));
     }
 
@@ -171,14 +156,14 @@ async function guardarCambiosPerfil(e) {
 }
 
 
-// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS ---
-
-// Esta es la función que llamará el botón "Asignar (Reactiva)"
-// (Se la pasaremos a gestionCuentas.js a través de main.js)
+// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS (¡CORREGIDA!) ---
 export async function iniciarRescateHuerfano(cuentaMadre) {
+    
+    // 1. Buscar perfiles huérfanos
+    // ¡CORRECCIÓN! También traemos la fecha de vencimiento
     const { data: huerfanos, error } = await supabase
         .from('perfiles')
-        .select('id, nombre_perfil')
+        .select('id, nombre_perfil, fecha_vencimiento_cliente')
         .eq('estado', 'huerfano');
 
     if (error) {
@@ -190,33 +175,36 @@ export async function iniciarRescateHuerfano(cuentaMadre) {
         return;
     }
 
-    // Construimos la lista de perfiles
+    // 2. Construir la lista de opciones para el modal
     let listaHtml = '';
     huerfanos.forEach((huerfano, index) => {
+        // ¡CORRECCIÓN! Guardamos también la fecha en el 'data-fecha'
+        const fechaISO = huerfano.fecha_vencimiento_cliente ? new Date(huerfano.fecha_vencimiento_cliente).toISOString() : '';
         listaHtml += `
             <div class="huerfano-option">
-                <input type="radio" name="huerfano_id" id="h_${huerfano.id}" value="${huerfano.id}" data-nombre="${huerfano.nombre_perfil}" ${index === 0 ? 'checked' : ''}>
+                <input type="radio" name="huerfano_id" id="h_${huerfano.id}" 
+                       value="${huerfano.id}" 
+                       data-nombre="${huerfano.nombre_perfil}"
+                       data-fecha="${fechaISO}"
+                       ${index === 0 ? 'checked' : ''}>
                 <label for="h_${huerfano.id}">${huerfano.nombre_perfil}</label>
             </div>
         `;
     });
 
-    // Llenamos y mostramos el modal de rescate
+    // 3. Llenar y mostrar el modal
     document.getElementById('modal-rescate-body').innerHTML = listaHtml;
     document.getElementById('modal-rescate').style.display = 'flex';
 
-    // Preparamos el botón "Confirmar" para que sepa a qué cuenta asignar
+    // 4. Preparar el botón "Confirmar"
     const confirmarBtn = document.getElementById('modal-rescate-confirmar');
-    
-    // Usamos .replaceWith(.cloneNode(true)) para limpiar listeners antiguos
     const nuevoBtn = confirmarBtn.cloneNode(true);
     confirmarBtn.parentNode.replaceChild(nuevoBtn, confirmarBtn);
-    
     nuevoBtn.onclick = () => confirmarRescate(cuentaMadre);
-    
-    // (El listener del botón de cerrar ya lo pusimos en initGestionPerfiles)
 }
 
+
+// Se ejecuta al hacer clic en "Confirmar Rescate"
 async function confirmarRescate(cuentaMadre) {
     const seleccionado = document.querySelector('input[name="huerfano_id"]:checked');
     if (!seleccionado) {
@@ -224,30 +212,51 @@ async function confirmarRescate(cuentaMadre) {
         return;
     }
 
-    const perfilHuerfanoId = seleccionado.value;
-    const perfilHuerfanoNombre = seleccionado.dataset.nombre;
+    // --- ¡NUEVA LÓGICA DE CONSUMO! ---
 
-    // Actualizamos el perfil huérfano
-    const { error } = await supabase
+    // 1. Encontrar un perfil LIBRE en la cuenta "buena"
+    const { data: perfilLibre, error: findError } = await supabase
         .from('perfiles')
-        .update({
-            cuenta_madre_id: cuentaMadre.id,
-            estado: 'asignado'
-            // IMPORTANTE: No tocamos su fecha de vencimiento original
-        })
-        .eq('id', perfilHuerfanoId);
+        .select('id')
+        .eq('cuenta_madre_id', cuentaMadre.id)
+        .eq('estado', 'libre')
+        .limit(1)
+        .single();
 
-    if (error) {
-        alert('Error al rescatar el perfil: ' + error.message);
+    if (findError || !perfilLibre) {
+        alert('¡Error! Esta cuenta madre ("${cuentaMadre.plataforma} / ${cuentaMadre.email}") no tiene perfiles libres para realizar el rescate.');
         return;
     }
 
-    document.getElementById('modal-rescate').style.display = 'none';
-    
-    // Mostramos el mensaje para el cliente
-    // Usamos la 'cuentaMadre' buena que nos pasaron
-    mostrarMensajeCliente(cuentaMadre, perfilHuerfanoNombre, null, 'reactiva');
+    // 2. Obtener los datos del huérfano que seleccionamos
+    const perfilHuerfanoId = seleccionado.value;
+    const perfilHuerfanoNombre = seleccionado.dataset.nombre;
+    // ¡CORRECCIÓN! Obtenemos la fecha (puede ser null si no había)
+    const perfilHuerfanoFecha = seleccionado.dataset.fecha ? new Date(seleccionado.dataset.fecha).toISOString() : null;
 
-    // Disparamos un evento para que main.js refresque la vista
+    // 3. ACTUALIZAR el perfil LIBRE con los datos del huérfano
+    const { error: updateError } = await supabase
+        .from('perfiles')
+        .update({
+            nombre_perfil: perfilHuerfanoNombre,
+            estado: 'asignado',
+            fecha_vencimiento_cliente: perfilHuerfanoFecha
+        })
+        .eq('id', perfilLibre.id); // ¡Actualizamos el perfil LIBRE!
+
+    if (updateError) {
+        alert('Error al actualizar el perfil libre: ' + updateError.message);
+        return;
+    }
+
+    // 4. BORRAR el perfil huérfano (ya no lo necesitamos)
+    await supabase
+        .from('perfiles')
+        .delete()
+        .eq('id', perfilHuerfanoId);
+
+    // 5. Cerrar modal, mostrar mensaje y refrescar
+    document.getElementById('modal-rescate').style.display = 'none';
+    mostrarMensajeCliente(cuentaMadre, perfilHuerfanoNombre, null, 'reactiva');
     window.dispatchEvent(new CustomEvent('refrescarVista'));
 }
