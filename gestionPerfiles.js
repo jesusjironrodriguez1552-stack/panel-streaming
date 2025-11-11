@@ -1,5 +1,5 @@
 //
-// --- gestionPerfiles.js (COMPLETO, FINAL Y CORREGIDO) ---
+// --- gestionPerfiles.js (COMPLETO, FINAL Y CON BÚSQUEDA) ---
 //
 import { supabase } from './supabaseClient.js'
 // Importamos AMBAS funciones de utils.js
@@ -34,16 +34,19 @@ export async function cargarTodosLosPerfiles() {
     // --- Lógica de Agrupación ---
     const perfilesAgrupados = {};
 
+    // --- ¡NUEVO! Contadores para el Resumen ---
     let vencidosCount = 0;
+    let vencenHoyCount = 0;
     let vencenProntoCount = 0;
+    // ---
+    
     const hoy = new Date();
     hoy.setHours(0,0,0,0);
     const tresDias = new Date(hoy);
     tresDias.setDate(hoy.getDate() + 3);
 
     perfiles.forEach(perfil => {
-        // 1. Determinar el grupo
-        let grupo = 'Perfiles Huérfanos'; // Default
+        let grupo = 'Perfiles Huérfanos';
         if (perfil.cuentas_madre) {
             grupo = perfil.cuentas_madre.plataforma.toUpperCase();
         } else if (perfil.estado === 'libre' && perfil.cuentas_madre) {
@@ -52,25 +55,19 @@ export async function cargarTodosLosPerfiles() {
             grupo = 'Perfiles Libres (Sin Asignar)';
         }
         
-        // 2. Crear el array del grupo si no existe
         if (!perfilesAgrupados[grupo]) {
             perfilesAgrupados[grupo] = [];
         }
-
-        // 3. Añadir el perfil al grupo
         perfilesAgrupados[grupo].push(perfil);
     });
-
     // --- Fin Lógica de Agrupación ---
 
-    let htmlFinal = ''; // Aquí construiremos todo el HTML
+    let htmlFinal = '';
 
-    // Recorremos el objeto de grupos
     for (const grupo in perfilesAgrupados) {
-        // Añadimos el título del grupo
-        htmlFinal += `<h2 class="grupo-plataforma">${grupo}</h2>`;
+        // ¡NUEVO! Añadimos el 'data-grupo' para la búsqueda
+        htmlFinal += `<h2 class="grupo-plataforma" data-grupo="${grupo}">${grupo}</h2>`;
         
-        // Recorremos los perfiles de ese grupo
         perfilesAgrupados[grupo].forEach(perfil => {
             let estadoClass = `estado-${perfil.estado}`;
             let info = '';
@@ -94,18 +91,18 @@ export async function cargarTodosLosPerfiles() {
                     estadoClass = 'estado-vencido';
                     info = `¡VENCIDO! (Desde ${vence.toLocaleDateString('es-ES')})`;
                     itemExtraClass = 'perfil-item-vencido';
-                    vencidosCount++;
+                    vencidosCount++; // <-- Suma al contador
                 
                 } else if (vence.getTime() === hoy.getTime()) {
                     info = `¡¡VENCE HOY!!`;
                     itemExtraClass = 'perfil-item-hoy';
-                    vencenProntoCount++;
-
+                    vencenHoyCount++; // <-- Suma al contador
+                
                 } else if (vence <= tresDias) {
                     info = `Vence pronto: ${vence.toLocaleDateString('es-ES')}`;
                     itemExtraClass = 'perfil-item-pronto';
-                    vencenProntoCount++;
-
+                    vencenProntoCount++; // <-- Suma al contador
+                
                 } else {
                     info = `Vence: ${vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
                 }
@@ -113,7 +110,6 @@ export async function cargarTodosLosPerfiles() {
             
             const fechaParaInput = perfil.fecha_vencimiento_cliente ? new Date(perfil.fecha_vencimiento_cliente).toISOString().split('T')[0] : '';
 
-            // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
             // El botón de Renovar (+30 Días)
             // Solo aparece si el perfil está 'vencido'
             const botonRenovar = (estadoReal === 'vencido') ?
@@ -121,17 +117,16 @@ export async function cargarTodosLosPerfiles() {
                     +30 Días
                  </button>` : '';
 
+            // ¡NUEVO! Añadimos 'data-nombre' para la búsqueda
             htmlFinal += `
-                <li class="perfil-item ${itemExtraClass}">
+                <li class="perfil-item ${itemExtraClass}" data-nombre="${perfil.nombre_perfil.toLowerCase()}">
                     <div>
                         <strong>${perfil.nombre_perfil}</strong> <br>
                         <small>${info}</small>
                     </div>
                     <div class="perfil-controles">
                         <span class="perfil-estado ${estadoClass}">${estadoReal.toUpperCase()}</span>
-                        
                         ${botonRenovar}
-                        
                         <button class="btn-small edit-perfil-btn" 
                             data-id="${perfil.id}"
                             data-nombre="${perfil.nombre_perfil}"
@@ -146,63 +141,108 @@ export async function cargarTodosLosPerfiles() {
         });
     }
 
-    // Finalmente, inyectamos todo el HTML
     listElement.innerHTML = htmlFinal;
 
-    // --- Añadir Listeners para los botones ---
+    // --- ¡NUEVO! Actualizar el Resumen/Contador ---
+    document.getElementById('perfiles-vencidos').textContent = vencidosCount;
+    document.getElementById('perfiles-hoy').textContent = vencenHoyCount;
+    document.getElementById('perfiles-pronto').textContent = vencenProntoCount;
+    // --- Fin del Resumen ---
+
+    // --- Listeners para los botones ---
     document.querySelectorAll('.edit-perfil-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             abrirModalEditar(e.currentTarget.dataset);
         });
     });
 
-    // Listener para el botón de Renovar
     document.querySelectorAll('.renew-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
             const fechaActual = e.currentTarget.dataset.fecha;
-            renovarPerfil(id, fechaActual); // Llamamos a la nueva función
+            renovarPerfil(id, fechaActual);
         });
     });
 
-    // --- Pop-up de Advertencia ---
-    if (!sessionStorage.getItem('alertaVencimientoMostrada')) {
-        let alertMessage = '';
-        if (vencidosCount > 0) {
-            alertMessage += `¡ATENCIÓN!\n\nTienes ${vencidosCount} perfiles VENCIDOS.\n`;
-        }
-        if (vencenProntoCount > 0) {
-            alertMessage += `Tienes ${vencenProntoCount} perfiles que vencen HOY o en los próximos 3 días.\n`;
-        }
-
-        if (alertMessage) {
-            alert(alertMessage + "\nRevisa la lista de perfiles marcados en color.");
-            sessionStorage.setItem('alertaVencimientoMostrada', 'true');
-        }
+    // --- ¡NUEVO! Pop-up de Advertencia Persistente ---
+    // (Ya no usa sessionStorage)
+    let alertMessage = '';
+    if (vencidosCount > 0) {
+        alertMessage += `¡ATENCIÓN!\n\nTienes ${vencidosCount} perfiles VENCIDOS.\n`;
     }
+    if (vencenHoyCount > 0) {
+        alertMessage += `Tienes ${vencenHoyCount} perfiles que vencen HOY.\n`;
+    }
+    if (vencenProntoCount > 0 && vencenHoyCount === 0) { // No repetir si ya avisamos de hoy
+         alertMessage += `Tienes ${vencenProntoCount} perfiles que vencen en los próximos 3 días.\n`;
+    }
+
+    if (alertMessage) {
+        alert(alertMessage + "\nRevisa la lista de perfiles marcados en color.");
+    }
+    // --- Fin del Pop-up ---
 }
 
-// --- 4.2: LÓGICA DE EDITAR PERFIL (El Lápiz) ---
+// --- 4.2: LÓGICA DE EDITAR, MODALS Y BÚSQUEDA ---
 export function initGestionPerfiles() {
+    // Listener para el modal de Editar
     const editForm = document.getElementById('edit-perfil-form');
     if (editForm) {
         editForm.addEventListener('submit', guardarCambiosPerfil);
     }
     
+    // Listeners para cerrar los modals
     const editCloseBtn = document.getElementById('modal-edit-close');
     if(editCloseBtn) {
         editCloseBtn.addEventListener('click', () => {
             document.getElementById('modal-editar-perfil').style.display = 'none';
         });
     }
-
     const rescateCloseBtn = document.getElementById('modal-rescate-close');
     if(rescateCloseBtn) {
         rescateCloseBtn.addEventListener('click', () => {
             document.getElementById('modal-rescate').style.display = 'none';
         });
     }
+
+    // --- ¡NUEVO! Listener para la Barra de Búsqueda ---
+    const searchInput = document.getElementById('perfiles-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', filtrarListaPerfiles);
+    }
 }
+
+// --- ¡NUEVA! Función de Búsqueda/Filtrado ---
+function filtrarListaPerfiles(e) {
+    const textoBusqueda = e.target.value.toLowerCase();
+    const grupos = document.querySelectorAll('.grupo-plataforma');
+
+    grupos.forEach(grupo => {
+        let grupoVisible = false;
+        // Obtenemos los 'li' que están entre este 'h2' y el siguiente 'h2'
+        let siguienteElemento = grupo.nextElementSibling;
+        while(siguienteElemento && siguienteElemento.tagName === 'LI') {
+            const nombrePerfil = siguienteElemento.dataset.nombre;
+            if (nombrePerfil.includes(textoBusqueda)) {
+                siguienteElemento.style.display = 'flex';
+                grupoVisible = true; // Si al menos un hijo es visible, el grupo es visible
+            } else {
+                siguienteElemento.style.display = 'none';
+            }
+            siguienteElemento = siguienteElemento.nextElementSibling;
+        }
+
+        // Si ningún perfil del grupo coincide, ocultamos el título del grupo
+        if (grupoVisible) {
+            grupo.style.display = 'block';
+        } else {
+            grupo.style.display = 'none';
+        }
+    });
+}
+
+
+// --- (El resto de funciones no cambian) ---
 
 function abrirModalEditar(perfilData) {
     document.getElementById('edit-perfil-id').value = perfilData.id;
@@ -248,8 +288,6 @@ async function guardarCambiosPerfil(e) {
     button.textContent = 'Guardar Cambios';
 }
 
-
-// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS ---
 export async function iniciarRescateHuerfano(cuentaMadre) {
     
     const { data: huerfanos, error } = await supabase
@@ -297,7 +335,6 @@ async function confirmarRescate(cuentaMadre) {
         return;
     }
 
-    // 1. Encontrar un perfil LIBRE en la cuenta "buena"
     const { data: perfilLibre, error: findError } = await supabase
         .from('perfiles')
         .select('id')
@@ -311,12 +348,10 @@ async function confirmarRescate(cuentaMadre) {
         return;
     }
 
-    // 2. Obtener los datos del huérfano
     const perfilHuerfanoId = seleccionado.value;
     const perfilHuerfanoNombre = seleccionado.dataset.nombre;
     const perfilHuerfanoFecha = seleccionado.dataset.fecha ? new Date(seleccionado.dataset.fecha).toISOString() : null;
 
-    // 3. ACTUALIZAR el perfil LIBRE con los datos del huérfano
     const { error: updateError } = await supabase
         .from('perfiles')
         .update({
@@ -331,61 +366,45 @@ async function confirmarRescate(cuentaMadre) {
         return;
     }
 
-    // 4. BORRAR el perfil huérfano
     await supabase
         .from('perfiles')
         .delete()
         .eq('id', perfilHuerfanoId);
 
-    // 5. Refrescar
     document.getElementById('modal-rescate').style.display = 'none';
     mostrarMensajeCliente(cuentaMadre, perfilHuerfanoNombre, null, 'reactiva');
     window.dispatchEvent(new CustomEvent('refrescarVista'));
 }
 
-
-// --- 4.4 ¡NUEVA FUNCIÓN DE RENOVACIÓN! (LÓGICA CORREGIDA PARA TU NEGOCIO) ---
 async function renovarPerfil(id, fechaActualISO) {
     
     let fechaBase;
-
-    // ¡LÓGICA CORREGIDA!
-    // Comprobamos si existe una fecha de vencimiento anterior
     if (fechaActualISO && fechaActualISO !== 'null' && fechaActualISO !== 'undefined') {
-        // SIEMPRE usamos la fecha de vencimiento anterior como base,
-        // no importa si está en el pasado.
         fechaBase = new Date(fechaActualISO);
     } else {
-        // Si por alguna razón no hay fecha (un perfil nuevo al que se le dio renovar), usamos HOY.
         fechaBase = new Date();
     }
-
-    // Nos aseguramos de ignorar la hora para la suma
     fechaBase.setHours(0, 0, 0, 0);
-
-    // Sumamos 30 días a la fecha base (la fecha de vencimiento original)
     fechaBase.setDate(fechaBase.getDate() + 30);
     
     const nuevaFecha = fechaBase.toISOString();
     const nuevaFechaFormateada = fechaBase.toLocaleDateString('es-ES');
 
-    if (!confirm(`Se usará la fecha de vencimiento original como base.\n\Nuevo vencimiento: ${nuevaFechaFormateada}\n¿Confirmar renovación?`)) {
+    if (!confirm(`Se usará la fecha de vencimiento original como base.\n\nNuevo vencimiento: ${nuevaFechaFormateada}\n¿Confirmar renovación?`)) {
         return;
     }
 
-    // Actualizamos la fecha y nos aseguramos que el estado sea 'asignado'
     const { error } = await supabase
         .from('perfiles')
         .update({ 
             fecha_vencimiento_cliente: nuevaFecha,
-            estado: 'asignado' // Importante por si estaba 'vencido'
+            estado: 'asignado'
         })
         .eq('id', id);
 
     if (error) {
         alert('Error al renovar el perfil: ' + error.message);
     } else {
-        // Refrescamos la vista para que se actualice la lista
         window.dispatchEvent(new CustomEvent('refrescarVista'));
     }
 }
