@@ -504,3 +504,16 @@ nav.tabs {
 #perfiles-search-input:focus {
     border-color: #3498db;
 }
+/* =================================================================
+   13. NUEVOS ESTILOS (Botón de Notificar)
+   ================================================================= */
+
+/* --- Botón de Notificar (WhatsApp) --- */
+.notify-btn {
+    background-color: #25D366; /* Color verde de WhatsApp */
+    color: #fff;
+    font-weight: bold;
+}
+.notify-btn:hover {
+    background-color: #128C7E; /* Color más oscuro de WhatsApp */
+}
