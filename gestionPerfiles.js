@@ -113,9 +113,10 @@ export async function cargarTodosLosPerfiles() {
             
             const fechaParaInput = perfil.fecha_vencimiento_cliente ? new Date(perfil.fecha_vencimiento_cliente).toISOString().split('T')[0] : '';
 
-            // Botón de Renovar (+30 Días)
-            // Solo aparece si el perfil está 'asignado' o 'vencido'
-            const botonRenovar = (perfil.estado === 'asignado' || estadoReal === 'vencido') ?
+            // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+            // El botón de Renovar (+30 Días)
+            // Solo aparece si el perfil está 'vencido'
+            const botonRenovar = (estadoReal === 'vencido') ?
                 `<button class="btn-small renew-btn" data-id="${perfil.id}" data-fecha="${perfil.fecha_vencimiento_cliente}">
                     +30 Días
                  </button>` : '';
@@ -176,7 +177,7 @@ export async function cargarTodosLosPerfiles() {
 
         if (alertMessage) {
             alert(alertMessage + "\nRevisa la lista de perfiles marcados en color.");
-            sessionStorage.setItem('alertaVimcentoMostrada', 'true');
+            sessionStorage.setItem('alertaVencimientoMostrada', 'true');
         }
     }
 }
@@ -368,7 +369,7 @@ async function renovarPerfil(id, fechaActualISO) {
     const nuevaFecha = fechaBase.toISOString();
     const nuevaFechaFormateada = fechaBase.toLocaleDateString('es-ES');
 
-    if (!confirm(`Se usará la fecha de vencimiento original como base.\n\nNuevo vencimiento: ${nuevaFechaFormateada}\n¿Confirmar renovación?`)) {
+    if (!confirm(`Se usará la fecha de vencimiento original como base.\n\Nuevo vencimiento: ${nuevaFechaFormateada}\n¿Confirmar renovación?`)) {
         return;
     }
 
