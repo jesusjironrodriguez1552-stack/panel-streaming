@@ -66,8 +66,8 @@
             </div>
 
             <div id="output-area" style="display:none;">
-                <h3>Texto para el Cliente (¡Listo para copiar!):</h3>
-                <textarea id="output-text" rows="8"></textarea>
+                <h3>¡Acción Requerida!</h3>
+                <div id="output-text" class="output-box"></div>
             </div>
         </div>
 
@@ -124,10 +124,12 @@
 
                 <label for="edit-perfil-telefono">Teléfono (con cód. de país, ej: 519...):</label>
                 <input type="text" id="edit-perfil-telefono" placeholder="Ej: 51987654321">
+                
                 <label for="edit-perfil-fecha">Fecha Vencimiento (si está asignado):</label>
                 <input type="date" id="edit-perfil-fecha">
                 
                 <button type="submit" class="btn">Guardar Cambios</button>
+                <button type="button" class="btn btn-danger" id="edit-perfil-delete-btn">Eliminar Perfil (Permanente)</button>
             </form>
         </div>
     </div>
@@ -142,6 +144,24 @@
                 </div>
             
             <button type="button" class="btn" id="modal-rescate-confirmar">Confirmar Rescate</button>
+        </div>
+    </div>
+
+    <div id="modal-editar-cuenta" class="modal-backdrop">
+        <div class="modal-content">
+            <span class="modal-close" id="modal-cuenta-close">&times;</span>
+            <h3>Editar Contraseña</h3>
+            
+            <form id="edit-cuenta-form">
+                <input type="hidden" id="edit-cuenta-id">
+                <p>Estás editando la contraseña para la cuenta:</p>
+                <strong id="edit-cuenta-email" style="font-size: 1.2em; color: #3498db;"></strong>
+                
+                <label for="edit-cuenta-pass">Nueva Contraseña:</label>
+                <input type="text" id="edit-cuenta-pass" required>
+                
+                <button type="submit" class="btn">Guardar Nueva Contraseña</button>
+            </form>
         </div>
     </div>
 
