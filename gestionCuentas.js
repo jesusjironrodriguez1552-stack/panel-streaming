@@ -1,14 +1,20 @@
-// --- MÓDULO DE GESTIÓN DE CUENTAS ---
+//
+// --- gestionCuentas.js (VERSIÓN CORREGIDA) ---
+//
 import { supabase } from './supabaseClient.js'
-import { showMessage } from './utils.js'
+// Importamos las funciones de 'utils.js' que este módulo necesita
+import { showMessage, mostrarMensajeCliente } from './utils.js'
 
-// Importamos la función para recargar perfiles (la crearemos después)
-// Esto es para que al borrar/archivar una cuenta, la pestaña de perfiles se refresque.
+// Importamos la función de perfiles para poder refrescarla
 import { cargarTodosLosPerfiles } from './gestionPerfiles.js'
 
-// --- 3.1: INICIALIZACIÓN Y RESUMEN DE STOCK (¡NUEVO!) ---
+// --- ¡NUEVO! ---
+// Esta variable guardará la función de "rescate" que 'main.js' nos pasa.
+// La guardamos para poder refrescar la lista sin perder la función.
+let _onReactivaClick = null;
 
-// Esta función se llamará desde main.js para activar el formulario
+// --- 3.1: INICIALIZACIÓN Y RESUMEN DE STOCK ---
+
 export function initGestionCuentas() {
     const stockForm = document.getElementById('stock-form');
     if (stockForm) {
@@ -16,7 +22,6 @@ export function initGestionCuentas() {
     }
 }
 
-// ¡NUEVA FUNCIÓN! Tu "Leyenda" de Stock
 async function actualizarResumenStock() {
     const { data: perfiles, error } = await supabase
         .from('perfiles')
@@ -88,7 +93,7 @@ async function guardarNuevaCuenta(e) {
     } else {
         showMessage('form-message', '¡Cuenta y perfiles guardados con éxito!', true);
         document.getElementById('stock-form').reset();
-        cargarCuentasMadre(); // Recargamos la lista
+        cargarCuentasMadre(); // Recargamos la lista (ya no necesita el param)
     }
     
     button.disabled = false;
@@ -97,11 +102,17 @@ async function guardarNuevaCuenta(e) {
 
 // --- 3.3: LÓGICA DE LA LISTA (Cargar, Asignar, Borrar) ---
 
-export async function cargarCuentasMadre() {
+// ¡CORRECCIÓN 1! La función acepta el parámetro 'onReactivaClick'
+export async function cargarCuentasMadre(onReactivaClick) {
+    
+    // ¡NUEVO! Si recibimos la función, la guardamos en nuestra variable
+    if (onReactivaClick) {
+        _onReactivaClick = onReactivaClick;
+    }
+    
     const listElement = document.getElementById('cuentas-madre-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
-    // ¡NUEVO! Actualizamos el resumen cada vez que se carga la lista
     actualizarResumenStock(); 
     
     const { data: cuentas, error } = await supabase
@@ -126,25 +137,6 @@ export async function cargarCuentasMadre() {
     cuentas.forEach(cuenta => {
         const esArchivada = cuenta.estado === 'archivada';
         const perfilesLibres = cuenta.perfiles ? cuenta.perfiles.filter(p => p.estado === 'libre').length : 0;
-        
-        // ¡NUEVO! Calculamos el sobregiro
-        let perfilesTotales = cuenta.perfiles ? cuenta.perfiles.length : 0;
-        let perfilesAsignados = perfilesTotales - perfilesLibres;
-        let libresReales = perfilesLibres;
-
-        // Si hay perfiles asignados (ej: 5) pero no hay perfiles (ej: 0), el sobregiro es -5
-        if (perfilesTotales === 0 && perfilesAsignados > 0) {
-             // Esto es un cálculo de sobregiro basado en perfiles que ya no existen pero están asignados
-             // Vamos a simplificarlo: contamos los perfiles "no libres"
-             const perfilesOcupados = cuenta.perfiles ? cuenta.perfiles.filter(p => p.estado !== 'libre').length : 0;
-             // Si una cuenta de 5 perfiles tiene 5 ocupados y 0 libres, libresReales = 0.
-             // Si tiene 6 ocupados y 0 libres, libresReales = -1.
-             // Esta lógica requiere saber cuántos perfiles *debería* tener.
-             // Vamos a usar la lógica simple: perfilesLibres.
-        }
-        // Si tienes perfiles "extra" creados por sobregiro, el conteo de libres será negativo
-        // (Lógica de sobregiro se aplica al *asignar*)
-        
         const itemClass = esArchivada ? 'stock-item-archivado' : 'stock-item';
         
         listElement.innerHTML += `
@@ -184,16 +176,16 @@ export async function cargarCuentasMadre() {
         });
     });
     
+    // ¡CORRECCIÓN 2! El listener ahora usa la función guardada '_onReactivaClick'
     document.querySelectorAll('.reactiva-btn').forEach(button => {
         button.addEventListener('click', () => {
             const id = button.dataset.id;
-            const idCuenta = button.dataset.id;
-            // ¡NUEVO! Llamamos al rescate de huérfanos
-            // (Esta función la crearemos en gestionPerfiles.js)
-            // por ahora solo dejamos la lógica anterior:
-             const cuenta = cuentas.find(c => c.id == id);
-             asignarPerfil(cuenta, 'reactiva'); 
-            // TODO: Cambiar esto por el desplegable de huérfanos
+            const cuenta = cuentas.find(c => c.id == id);
+            if (_onReactivaClick) {
+                _onReactivaClick(cuenta);
+            } else {
+                console.error("Error: La función de reactivación no está cargada.");
+            }
         });
     });
 }
@@ -214,13 +206,12 @@ async function asignarPerfil(cuenta, tipo) {
     let perfilParaActualizarId = null;
 
     if (findError || !perfilLibre) {
-        // --- ¡NUEVO! LÓGICA DE SOBREGIRO ---
+        // --- LÓGICA DE SOBREGIRO ---
         if (tipo === 'nuevo') {
             if (!confirm(`¡SOBREGIRO! Esta cuenta no tiene perfiles libres. ¿Deseas forzar un perfil extra (sobreventa)?`)) {
                 return;
             }
             
-            // Creamos un perfil "extra" sobre la marcha
             const nombreCliente = prompt('Escribe el nombre del perfil para el cliente (SOBREVENTA):');
             if (!nombreCliente) return;
 
@@ -242,14 +233,14 @@ async function asignarPerfil(cuenta, tipo) {
                 return;
             }
             
-            // Mostramos el mensaje y recargamos
             mostrarMensajeCliente(cuenta, nombreCliente, vence, 'nuevo');
-            cargarCuentasMadre();
-            return; // Terminamos la función aquí
+            cargarCuentasMadre(); // Recargamos
+            return; 
         
         } else {
              // Es una reactivación y no hay perfiles libres
-             alert('Error: No se encontró un perfil libre para esta cuenta. Use el modo "Nuevo" para forzar un sobregiro si es necesario.');
+             // Esto ahora se maneja con el botón 'reactiva' y el modal.
+             alert('Error: No hay perfiles libres. Usa el botón "Asignar (Reactiva)" para rescatar un perfil huérfano.');
              return;
         }
     }
@@ -278,53 +269,23 @@ async function asignarPerfil(cuenta, tipo) {
     }
     
     mostrarMensajeCliente(cuenta, nombrePerfil, vence, tipo);
-    cargarCuentasMadre();
+    cargarCuentasMadre(); // Recargamos
 }
-
-// Función ayudante para mostrar el texto
-function mostrarMensajeCliente(cuenta, nombrePerfil, fechaVence, tipo) {
-    let textoCliente = '';
-    
-    if (tipo === 'nuevo') {
-        const venceFormateado = fechaVence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        textoCliente = `
-CUENTA ${cuenta.plataforma.toUpperCase()}
-CORREO: ${cuenta.email}
-CONTRASEÑA: ${cuenta.contrasena}
-PERFIL: ${nombrePerfil}
-VENCE: ${venceFormateado}
-        `.trim();
-    } else { // 'reactiva'
-        textoCliente = `
-POR SU SEGURIDAD SE A MODIFICADO EL CORREO DE SU CUENTA:
-CORREO: ${cuenta.email}
-CONTRASEÑA: ${cuenta.contrasena}
-PERFIL: ${nombrePerfil}
-        `.trim();
-    }
-
-    const outputArea = document.getElementById('output-area');
-    const outputText = document.getElementById('output-text');
-    outputText.value = textoCliente; 
-    outputArea.style.display = 'block';
-    outputArea.scrollIntoView({ behavior: 'smooth' });
-}
-
 
 // --- 3.5: LÓGICA DE BORRADO (¡CON REEMPLAZO SUTIL!) ---
 
 async function borrarCuenta(cuenta) {
     if (cuenta.estado === 'archivada') {
         
-        // --- ¡NUEVO! LÓGICA DE "ELIMINAR SUTIL" (Reemplazo) ---
+        // --- "ELIMINAR SUTIL" (Reemplazo) ---
         if (!confirm('Esta cuenta está archivada. ¿Quieres ELIMINARLA SUTILMENTE? (Se reemplazará el email/pass y se marcará como "eliminado")')) return;
 
         const { error: errorReemplazo } = await supabase
             .from('cuentas_madre')
             .update({
-                email: `eliminada_${cuenta.id}@anulada.com`, // Email único pero inútil
+                email: `eliminada_${cuenta.id}@anulada.com`,
                 contrasena: 'xxx-eliminada-xxx',
-                estado: 'eliminado' // Un nuevo estado final
+                estado: 'eliminado' 
             })
             .eq('id', cuenta.id);
 
@@ -365,10 +326,8 @@ async function borrarCuenta(cuenta) {
         alert('Cuenta archivada. Perfiles asignados marcados como "huérfanos". Perfiles libres eliminados.');
         cargarCuentasMadre();
         
-        // Recargamos la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
-             // Esta función la crearemos en el siguiente paso
-             // cargarTodosLosPerfiles();
+             cargarTodosLosPerfiles();
         }
     }
 }
