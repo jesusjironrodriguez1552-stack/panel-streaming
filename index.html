@@ -1,37 +1,132 @@
-<div id="modal-editar-perfil" class="modal-backdrop">
-    <div class="modal-content">
-        <span class="modal-close">&times;</span>
-        <h3>Editar Perfil</h3>
-        <form id="edit-perfil-form">
-            <input type="hidden" id="edit-perfil-id">
-            
-            <label for="edit-perfil-nombre">Nombre del Perfil:</label>
-            <input type="text" id="edit-perfil-nombre" required>
-            
-            <label for="edit-perfil-estado">Estado:</label>
-            <select id="edit-perfil-estado">
-                <option value="asignado">Asignado</option>
-                <option value="libre">Libre</option>
-                <option value="huerfano">Huérfano</option>
-            </select>
-            
-            <label for="edit-perfil-fecha">Fecha Vencimiento (si está asignado):</label>
-            <input type="date" id="edit-perfil-fecha">
-            
-            <button type="submit" class="btn">Guardar Cambios</button>
-        </form>
-    </div>
-</div>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Streaming Store</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
 
-<div id="modal-rescate" class="modal-backdrop">
-    <div class="modal-content">
-        <span class="modal-close" id="modal-rescate-close">&times;</span>
-        <h3>Rescatar Perfil Huérfano</h3>
-        <p>Selecciona el perfil "huérfano" que quieres mover a esta nueva cuenta:</p>
-        
-        <div id="modal-rescate-body">
+    <header>
+        <span id="user-email">Cargando...</span>
+        <button id="logout-button" class="btn btn-danger">Cerrar Sesión</button>
+    </header>
+
+    <main>
+        <nav class="tabs">
+            <button class="tab-button active" data-tab="gestion">📈 Gestión de Cuentas</button>
+            <button class="tab-button" data-tab="perfiles">👤 Control de Perfiles</button>
+            <button class="tab-button" data-tab="pagos">💰 Control de Pagos</button>
+        </nav>
+
+        <div id="gestion" class="tab-content active">
+            <h2>📈 Gestión de Cuentas</h2>
+            
+            <div class="stock-summary">
+                <h3>Resumen General:</h3>
+                <span class="stock-item-summary">
+                    🟢 Libres: <strong id="stock-libres">...</strong>
+                </span>
+                <span class="stock-item-summary">
+                    🔴 Ocupados: <strong id="stock-ocupados">...</strong>
+                </span>
             </div>
-        
-        <button type="button" class="btn" id="modal-rescate-confirmar">Confirmar Rescate</button>
+
+            <div class="grid-container">
+                <div class="grid-item">
+                    <h3>Añadir Nueva Cuenta Madre</h3>
+                    <form id="stock-form">
+                        <label for="plataforma-input">Plataforma:</label>
+                        <input type="text" id="plataforma-input" placeholder="Ej: Netflix, HBO Max" required>
+                        
+                        <label for="email-input">Email:</label>
+                        <input type="email" id="email-input" required>
+                        
+                        <label for="password-input">Contraseña:</label>
+                        <input type="text" id="password-input" required>
+                        
+                        <label for="perfiles-input">Nº de Perfiles (total):</label>
+                        <input type="number" id="perfiles-input" value="5" min="1" required>
+                        
+                        <label for="fecha-proveedor-input">Fecha Pago a Proveedor:</label>
+                        <input type="date" id="fecha-proveedor-input">
+                        
+                        <button type="submit" class="btn">Guardar Cuenta</button>
+                        <div id="form-message"></div>
+                    </form>
+                </div>
+                
+                <div class="grid-item">
+                    <h3>Cuentas Activas</h3>
+                    <ul id="cuentas-madre-list" class="stock-list">
+                        <li>Cargando cuentas...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="output-area" style="display:none;">
+                <h3>Texto para el Cliente (¡Listo para copiar!):</h3>
+                <textarea id="output-text" rows="8"></textarea>
+            </div>
+        </div>
+
+        <div id="perfiles" class="tab-content">
+            <h2>👤 Control de Perfiles</h2>
+            <ul id="perfiles-list" class="perfiles-list-container">
+                <li>Cargando perfiles...</li>
+            </ul>
+        </div>
+
+        <div id="pagos" class="tab-content">
+            <h2>💰 Control de Pagos (Próximos 7 días)</h2>
+            <ul id="pagos-list" class="stock-list">
+                <li>Cargando pagos...</li>
+            </ul>
+        </div>
+    </main>
+
+    
+    <div id="modal-editar-perfil" class="modal-backdrop">
+        <div class="modal-content">
+            <span class="modal-close" id="modal-edit-close">&times;</span>
+            <h3>Editar Perfil</h3>
+            <form id="edit-perfil-form">
+                <input type="hidden" id="edit-perfil-id">
+                
+                <label for="edit-perfil-nombre">Nombre del Perfil:</label>
+                <input type="text" id="edit-perfil-nombre" required>
+                
+                <label for="edit-perfil-estado">Estado:</label>
+                <select id="edit-perfil-estado">
+                    <option value="asignado">Asignado</option>
+                    <option value="libre">Libre (Reembolso)</option>
+                    <option value="huerfano">Huérfano</option>
+                </select>
+                
+                <label for="edit-perfil-fecha">Fecha Vencimiento (si está asignado):</label>
+                <input type="date" id="edit-perfil-fecha">
+                
+                <button type="submit" class="btn">Guardar Cambios</button>
+            </form>
+        </div>
     </div>
-</div>
+
+    <div id="modal-rescate" class="modal-backdrop">
+        <div class="modal-content">
+            <span class="modal-close" id="modal-rescate-close">&times;</span>
+            <h3>Rescatar Perfil Huérfano</h3>
+            <p>Selecciona el perfil "huérfano" que quieres mover a esta nueva cuenta:</p>
+            
+            <div id="modal-rescate-body">
+                </div>
+            
+            <button type="button" class="btn" id="modal-rescate-confirmar">Confirmar Rescate</button>
+        </div>
+    </div>
+
+
+    <script type="module" src="main.js"></script>
+
+</body>
+</html>
