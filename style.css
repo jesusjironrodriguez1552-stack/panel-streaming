@@ -1,161 +1,401 @@
-/* --- Reseteo Básico --- */
-body, html {
+/* =================================================================
+   1. GLOBALES Y RESET BÁSICO
+   ================================================================= */
+* {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f4f7f6;
 }
 
-/* --- Header Fijo --- */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #1a1a1a;
+    color: #f0f0f0;
+    line-height: 1.6;
+}
+
+main {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+/* =================================================================
+   2. PÁGINA DE LOGIN (login.html)
+   ================================================================= */
+#login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+#login-form-box {
+    background-color: #2a2a2a;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid #444;
+}
+
+#login-form-box h1 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 25px;
+}
+
+/* =================================================================
+   3. ESTILOS DE FORMULARIO (Globales)
+   ================================================================= */
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #ccc;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background-color: #222;
+    border: 1px solid #555;
+    border-radius: 6px;
+    color: #f0f0f0;
+    font-size: 1em;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.3);
+}
+
+/* =================================================================
+   4. BOTONES (Globales)
+   ================================================================= */
+.btn {
+    display: inline-block;
+    width: 100%;
+    background-color: #3498db;
+    color: #fff;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: bold;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn:hover {
+    background-color: #2980b9;
+}
+
+.btn:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+}
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.btn-small {
+    padding: 6px 10px;
+    font-size: 0.9em;
+    width: auto;
+    margin-right: 5px;
+}
+
+/* =================================================================
+   5. CABECERA Y NAVEGACIÓN (index.html)
+   ================================================================= */
 header {
-    background-color: #333;
-    color: white;
-    padding: 15px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    position: sticky; /* Fijo en la parte de arriba */
-    top: 0;
-    z-index: 10;
-}
-.user-info { display: flex; align-items: center; }
-.user-info span { margin-right: 15px; }
-#logout-button { width: auto; background-color: #dc3545; }
-
-/* --- Contenido Principal --- */
-main {
     padding: 20px;
-    max-width: 900px; /* Centramos el contenido */
-    margin: 0 auto;
+    background-color: #2a2a2a;
+    border-bottom: 1px solid #444;
 }
 
-/* =================================== */
-/* ¡NUEVO! ESTILOS DE LAS PESTAÑAS     */
-/* =================================== */
-.tab-nav {
-    display: flex;
-    background-color: #eee;
-    padding: 0 20px;
-    max-width: 900px;
-    margin: 0 auto;
+#user-email {
+    font-weight: bold;
+    color: #ccc;
 }
+
+#logout-button {
+    width: auto;
+}
+
+/* --- Sistema de Pestañas --- */
+nav.tabs {
+    display: flex;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
 .tab-button {
+    flex: 1;
+    padding: 15px;
     background-color: transparent;
     border: none;
-    padding: 15px 20px;
-    cursor: pointer;
+    color: #ccc;
     font-size: 1em;
-    color: #555;
     font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
     border-bottom: 3px solid transparent;
-    width: auto; /* Anula el 100% de ancho */
 }
+
 .tab-button:hover {
-    background-color: #ddd;
+    background-color: #333;
 }
+
 .tab-button.active {
-    /* La pestaña seleccionada */
-    color: #007bff;
-    border-bottom: 3px solid #007bff;
+    color: #fff;
+    background-color: #333;
+    border-bottom: 3px solid #3498db;
 }
 
-/* ¡NUEVO! Lógica para ocultar/mostrar contenido */
 .tab-content {
-    display: none; /* Oculto por defecto */
-}
-.tab-content.active {
-    display: block; /* Visible cuando está activo */
-}
-/* =================================== */
-
-/* --- Estilo del Formulario --- */
-.form-container {
-    background-color: #fff;
-    padding: 25px;
+    display: none;
+    padding: 20px;
+    background-color: #2a2a2a;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    border: 1px solid #444;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* =================================================================
+   6. PESTAÑA 1: GESTIÓN DE CUENTAS
+   ================================================================= */
+.stock-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    background-color: #333;
+    padding: 15px;
+    border-radius: 8px;
     margin-bottom: 20px;
 }
-
-/* --- Estilos Generales (botones, inputs, etc.) --- */
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; }
-.form-group input, .form-group select { width: 100%; padding: 10px; box-sizing: border-box; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
-/* Estilo para botones de formulario */
-form button { 
-    width: 100%; 
-    padding: 10px; 
-    background-color: #007bff; 
-    color: white; 
-    border: none; 
-    border-radius: 5px; 
-    cursor: pointer; 
+.stock-item-summary {
+    font-size: 1.2em;
 }
-form button:hover { background-color: #0056b3; }
-button:disabled { background-color: #aaa; }
+#stock-libres { color: #2ecc71; font-weight: bold; }
+#stock-ocupados { color: #e74c3c; font-weight: bold; }
 
-.success { color: green; }
-.error { color: red; }
-pre { white-space: pre-wrap; margin: 0; font-family: monospace; }
-
-/* Botones pequeños para listas */
-.btn-small {
-    width: auto;
-    padding: 5px 10px;
-    font-size: 0.9em;
-    margin-right: 5px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    color: white;
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr; /* Apilado en móvil por defecto */
+    gap: 20px;
 }
-.delete-btn { background-color: #dc3545; }
-.assign-btn { background-color: #28a745; } /* Verde */
-.reactiva-btn { background-color: #17a2b8; } /* Azul */
-.edit-btn { background-color: #ffc107; } /* Amarillo */
 
-/* Estilos de las listas */
-ul {
-    list-style-type: none;
+/* A partir de 900px, 2 columnas */
+@media (min-width: 900px) {
+    .grid-container {
+        grid-template-columns: 1fr 1.5fr;
+    }
+}
+
+.grid-item h3 {
+    margin-bottom: 15px;
+    border-bottom: 2px solid #444;
+    padding-bottom: 10px;
+}
+
+.stock-list, .perfiles-list-container {
+    list-style: none;
     padding: 0;
+    max-height: 70vh;
+    overflow-y: auto;
 }
-.stock-item {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 5px;
+
+.stock-item, .perfil-item {
+    background-color: #333;
     padding: 15px;
-    margin-bottom: 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border: 1px solid #444;
+    line-height: 1.5;
 }
+
+.stock-item strong {
+    color: #3498db;
+}
+
+.stock-item button {
+    margin-top: 10px;
+}
+
 .stock-item-archivado {
-    background-color: #fff6f6;
-    border: 1px solid #e0b4b4;
-    color: #581515;
-    padding: 15px;
-    margin-bottom: 15px;
+    background-color: #442c2c; /* Fondo rojo oscuro */
+    border: 1px solid #e74c3c;
+    color: #f0c0c0;
 }
 .stock-item-archivado strong {
-    color: #D8000C;
+    color: #ff8080;
 }
 
-/* Estilo para la lista de perfiles */
+#output-area {
+    margin-top: 20px;
+}
+#output-area h3 {
+    margin-bottom: 10px;
+}
+#output-text {
+    height: 180px;
+    font-family: "Courier New", Courier, monospace;
+    background-color: #111;
+}
+
+/* =================================================================
+   7. PESTAÑA 2: CONTROL DE PERFILES
+   ================================================================= */
 .perfil-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px;
-    border-bottom: 1px solid #eee;
 }
-.perfil-item:last-child {
-    border-bottom: none;
+.perfil-item strong {
+    color: #fff;
+    font-size: 1.1em;
+}
+.perfil-item small {
+    color: #aaa;
+}
+.perfil-controles {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 .perfil-estado {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8em;
     font-weight: bold;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.9em;
+    color: #fff;
+    text-transform: uppercase;
 }
-/* Colores de estado */
-.estado-libre { background-color: #e0f8e0; color: #0b6623; }
-.estado-asignado { background-color: #e0f0ff; color: #0056b3; }
-.estado-vencido { background-color: #ffeded; color: #D8000C; }
-.estado-huerfano { background-color: #fcf8e3; color: #8a6d3b; }
+
+/* --- Colores de Estados --- */
+.estado-libre { background-color: #27ae60; } /* Verde */
+.estado-asignado { background-color: #2980b9; } /* Azul */
+.estado-vencido { background-color: #c0392b; } /* Rojo */
+.estado-huerfano { background-color: #f39c12; } /* Naranja */
+
+.edit-perfil-btn {
+    padding: 5px 8px;
+    font-size: 1.1em;
+    background-color: #555;
+}
+.edit-perfil-btn:hover {
+    background-color: #666;
+}
+
+/* =================================================================
+   8. MODALS (VENTANAS EMERGENTES)
+   ================================================================= */
+.modal-backdrop {
+    display: none; /* Se activa con JS (display: flex) */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #333;
+    color: #fff;
+    margin: auto;
+    padding: 25px;
+    border: 1px solid #555;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+}
+
+.modal-close {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.modal-close:hover {
+    color: #fff;
+}
+
+.modal-content h3 {
+    margin-bottom: 20px;
+}
+.modal-content button {
+    margin-top: 20px;
+}
+
+/* --- Modal de Rescate --- */
+#modal-rescate-body .huerfano-option {
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#modal-rescate-body .huerfano-option:hover {
+    background-color: #444;
+}
+#modal-rescate-body label {
+    margin-left: 10px;
+    font-size: 1.1em;
+}
+
+/* =================================================================
+   9. CLASES DE MENSAJES
+   ================================================================= */
+#form-message, #error-message {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+.success {
+    background-color: #27ae60;
+    color: #fff;
+}
+.error {
+    background-color: #c0392b;
+    color: #fff;
+}
