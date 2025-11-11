@@ -1,5 +1,5 @@
 //
-// --- gestionPerfiles.js (COMPLETO, FINAL y con CORRECCIÓN DE TIMEZONE) ---
+// --- gestionPerfiles.js (COMPLETO, FINAL y con CONTRASEÑA EN EL TÍTULO) ---
 //
 import { supabase } from './supabaseClient.js'
 // Importamos AMBAS funciones de utils.js
@@ -17,6 +17,7 @@ export async function cargarTodosLosPerfiles() {
     const listElement = document.getElementById('perfiles-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
+    // La consulta ya trae la contraseña, así que no hay que cambiarla
     const { data: perfiles, error } = await supabase
         .from('perfiles')
         .select(`
@@ -46,8 +47,11 @@ export async function cargarTodosLosPerfiles() {
             grupo = 'XX_LIBRES_SIN_ASIGNAR';
         }
         else if (perfil.cuentas_madre) {
-            grupo = `${perfil.cuentas_madre.plataforma.toUpperCase()} | ${perfil.cuentas_madre.email}`;
+            // ¡AQUÍ ESTÁ LA CORRECCIÓN!
+            // Añadimos la contraseña al título del grupo
+            grupo = `${perfil.cuentas_madre.plataforma.toUpperCase()} | ${perfil.cuentas_madre.email} | ${perfil.cuentas_madre.contrasena}`;
         }
+        
         if (!perfilesAgrupados[grupo]) { perfilesAgrupados[grupo] = []; }
         perfilesAgrupados[grupo].push(perfil);
     });
@@ -71,7 +75,6 @@ export async function cargarTodosLosPerfiles() {
             let info = '';
             let estadoReal = perfil.estado;
             let itemExtraClass = ''; 
-            const cuentaMadre = perfil.cuentas_madre;
 
             if (perfil.estado === 'huerfano') {
                 info = '¡CUENTA MADRE ELIMINADA!';
@@ -79,13 +82,8 @@ export async function cargarTodosLosPerfiles() {
                 info = 'Este perfil está libre y listo para asignar.';
             }
 
-            // --- Lógica de Vencimiento Mejorada ---
             if (perfil.estado === 'asignado') {
-                
-                // ¡AQUÍ ESTÁ LA CORRECIÓN!
-                // Forzamos la zona horaria de Perú (GMT-5) al leer la fecha
                 const vence = new Date(perfil.fecha_vencimiento_cliente + 'T00:00:00-05:00');
-                
                 if (vence < hoy) {
                     estadoReal = 'vencido';
                     estadoClass = 'estado-vencido';
@@ -106,16 +104,8 @@ export async function cargarTodosLosPerfiles() {
             }
             
             const fechaParaInput = perfil.fecha_vencimiento_cliente ? new Date(perfil.fecha_vencimiento_cliente).toISOString().split('T')[0] : '';
-
-            const botonRenovar = (estadoReal === 'vencido') ?
-                `<button class="btn-small renew-btn" data-id="${perfil.id}" data-fecha="${perfil.fecha_vencimiento_cliente}">
-                    +30 Días
-                 </button>` : '';
-            
-            const botonNotificar = (perfil.wsp && perfil.estado !== 'libre') ?
-                `<button class="btn-small notify-btn" data-id="${perfil.id}">
-                    💬 Notificar
-                 </button>` : '';
+            const botonRenovar = (estadoReal === 'vencido') ? `<button class="btn-small renew-btn" data-id="${perfil.id}" data-fecha="${perfil.fecha_vencimiento_cliente}">+30 Días</button>` : '';
+            const botonNotificar = (perfil.wsp && perfil.estado !== 'libre') ? `<button class="btn-small notify-btn" data-id="${perfil.id}">💬 Notificar</button>` : '';
 
             htmlFinal += `
                 <li class="perfil-item ${itemExtraClass}" data-nombre="${perfil.nombre_perfil.toLowerCase()}">
@@ -148,12 +138,10 @@ export async function cargarTodosLosPerfiles() {
     document.getElementById('perfiles-hoy').textContent = vencenHoyCount;
     document.getElementById('perfiles-pronto').textContent = vencenProntoCount;
     
-    // --- Listeners para los botones ---
     document.querySelectorAll('.edit-perfil-btn').forEach(button => { button.addEventListener('click', (e) => { abrirModalEditar(e.currentTarget.dataset); }); });
     document.querySelectorAll('.renew-btn').forEach(button => { button.addEventListener('click', (e) => { const id = e.currentTarget.dataset.id; const fechaActual = e.currentTarget.dataset.fecha; renovarPerfil(id, fechaActual); }); });
     document.querySelectorAll('.notify-btn').forEach(button => { button.addEventListener('click', async (e) => { const id = e.currentTarget.dataset.id; const { data: perfil } = await supabase.from('perfiles').select(`*, cuentas_madre(*)`).eq('id', id).single(); abrirMenuNotificar(perfil); }); });
 
-    // --- Pop-up de Advertencia Persistente ---
     let alertMessage = '';
     if (vencidosCount > 0) { alertMessage += `¡ATENCIÓN!\n\nTienes ${vencidosCount} perfiles VENCIDOS.\n`; }
     if (vencenHoyCount > 0) { alertMessage += `Tienes ${vencenHoyCount} perfiles que vencen HOY.\n`; }
@@ -197,7 +185,6 @@ function filtrarListaPerfiles(e) {
     });
 }
 
-// Rellena el modal con los datos
 function abrirModalEditar(perfilData) {
     document.getElementById('edit-perfil-id').value = perfilData.id;
     document.getElementById('edit-perfil-nombre').value = perfilData.nombre;
@@ -207,7 +194,6 @@ function abrirModalEditar(perfilData) {
     document.getElementById('modal-editar-perfil').style.display = 'flex';
 }
 
-// Guarda los datos del modal
 async function guardarCambiosPerfil(e) {
     e.preventDefault();
     const button = e.target.querySelector('button');
@@ -293,19 +279,14 @@ async function confirmarRescate(cuentaMadre) {
 }
 
 
-// --- 4.4 LÓGICA DE RENOVACIÓN (¡CORREGIDA!) ---
+// --- 4.4 LÓGICA DE RENOVACIÓN ---
 async function renovarPerfil(id, fechaActualISO) {
     let fechaBase;
-    
-    // ¡AQUÍ TAMBIÉN ESTÁ LA CORRECIÓN!
-    // Forzamos la zona horaria al leer la fecha base
     if (fechaActualISO && fechaActualISO !== 'null' && fechaActualISO !== 'undefined') {
         fechaBase = new Date(fechaActualISO + 'T00:00:00-05:00');
     } else {
         fechaBase = new Date();
     }
-    
-    // La fecha base ya está en la zona horaria correcta
     fechaBase.setHours(0, 0, 0, 0); 
     fechaBase.setDate(fechaBase.getDate() + 30);
     
@@ -357,7 +338,6 @@ function abrirMenuNotificar(perfil) {
     textoMensaje = textoMensaje.replace(/\[PASS\]/g, perfil.cuentas_madre.contrasena);
     
     if (perfil.fecha_vencimiento_cliente) {
-        // ¡AQUÍ TAMBIÉN VA LA CORRECIÓN!
         const nuevaFecha = new Date(perfil.fecha_vencimiento_cliente + 'T00:00:00-05:00').toLocaleDateString('es-ES');
         textoMensaje = textoMensaje.replace(/\[NUEVA_FECHA\]/g, nuevaFecha);
     }
