@@ -1,5 +1,5 @@
 //
-// --- gestionPerfiles.js (COMPLETO, FINAL y CON AGRUPACIÓN POR CORREO) ---
+// --- gestionPerfiles.js (COMPLETO, FINAL y con CORRECCIÓN DE TIMEZONE) ---
 //
 import { supabase } from './supabaseClient.js'
 // Importamos AMBAS funciones de utils.js
@@ -32,9 +32,8 @@ export async function cargarTodosLosPerfiles() {
     if (error) { /* ... (manejo de error) ... */ }
     if (perfiles.length === 0) { /* ... (manejo de lista vacía) ... */ }
 
-    // --- ¡NUEVA LÓGICA DE AGRUPACIÓN! ---
+    // --- Lógica de Agrupación ---
     const perfilesAgrupados = {};
-
     let vencidosCount = 0, vencenHoyCount = 0, vencenProntoCount = 0;
     const hoy = new Date();
     hoy.setHours(0,0,0,0);
@@ -42,49 +41,37 @@ export async function cargarTodosLosPerfiles() {
     tresDias.setDate(hoy.getDate() + 3);
 
     perfiles.forEach(perfil => {
-        // 1. Determinar el grupo
-        let grupo = 'XX_HUERFANOS'; // Grupo especial para huérfanos
-    
+        let grupo = 'XX_HUERFANOS'; 
         if (perfil.estado === 'libre' && !perfil.cuentas_madre) {
-            grupo = 'XX_LIBRES_SIN_ASIGNAR'; // Grupo especial
+            grupo = 'XX_LIBRES_SIN_ASIGNAR';
         }
         else if (perfil.cuentas_madre) {
-            // ¡NUEVA CLAVE DE GRUPO! Plataforma + Email
             grupo = `${perfil.cuentas_madre.plataforma.toUpperCase()} | ${perfil.cuentas_madre.email}`;
         }
-        
-        if (!perfilesAgrupados[grupo]) {
-            perfilesAgrupados[grupo] = [];
-        }
+        if (!perfilesAgrupados[grupo]) { perfilesAgrupados[grupo] = []; }
         perfilesAgrupados[grupo].push(perfil);
     });
-    // --- Fin Lógica de Agrupación ---
     
-    // ¡NUEVO! Ordenar los grupos
     const gruposOrdenados = Object.keys(perfilesAgrupados).sort((a, b) => {
-        // Pone los grupos especiales (Huérfanos, etc.) al final
         if (a.startsWith('XX_')) return 1;
         if (b.startsWith('XX_')) return -1;
-        // Ordena el resto alfabéticamente
         return a.localeCompare(b);
     });
 
     let htmlFinal = '';
 
-    // Recorremos los grupos ORDENADOS
     for (const grupoKey of gruposOrdenados) {
         let nombreGrupo = grupoKey;
-        // Limpiamos los nombres de grupos especiales para mostrarlos bonitos
         if (grupoKey === 'XX_HUERFANOS') nombreGrupo = 'Perfiles Huérfanos (Cuentas Eliminadas)';
         if (grupoKey === 'XX_LIBRES_SIN_ASIGNAR') nombreGrupo = 'Perfiles Libres (Sin Cuenta Asignada)';
-
         htmlFinal += `<h2 class="grupo-plataforma" data-grupo="${nombreGrupo}">${nombreGrupo}</h2>`;
         
         perfilesAgrupados[grupoKey].forEach(perfil => {
             let estadoClass = `estado-${perfil.estado}`;
-            let info = ''; // La info del email ya está en el título
+            let info = '';
             let estadoReal = perfil.estado;
             let itemExtraClass = ''; 
+            const cuentaMadre = perfil.cuentas_madre;
 
             if (perfil.estado === 'huerfano') {
                 info = '¡CUENTA MADRE ELIMINADA!';
@@ -94,7 +81,10 @@ export async function cargarTodosLosPerfiles() {
 
             // --- Lógica de Vencimiento Mejorada ---
             if (perfil.estado === 'asignado') {
-                const vence = new Date(perfil.fecha_vencimiento_cliente);
+                
+                // ¡AQUÍ ESTÁ LA CORRECIÓN!
+                // Forzamos la zona horaria de Perú (GMT-5) al leer la fecha
+                const vence = new Date(perfil.fecha_vencimiento_cliente + 'T00:00:00-05:00');
                 
                 if (vence < hoy) {
                     estadoReal = 'vencido';
@@ -154,38 +144,14 @@ export async function cargarTodosLosPerfiles() {
 
     listElement.innerHTML = htmlFinal;
 
-    // --- Actualizar el Resumen/Contador ---
     document.getElementById('perfiles-vencidos').textContent = vencidosCount;
     document.getElementById('perfiles-hoy').textContent = vencenHoyCount;
     document.getElementById('perfiles-pronto').textContent = vencenProntoCount;
     
     // --- Listeners para los botones ---
-    document.querySelectorAll('.edit-perfil-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            abrirModalEditar(e.currentTarget.dataset);
-        });
-    });
-
-    document.querySelectorAll('.renew-btn').forEach(button => {
-        button.addEventListener('click', (e) => {
-            const id = e.currentTarget.dataset.id;
-            const fechaActual = e.currentTarget.dataset.fecha;
-            renovarPerfil(id, fechaActual);
-        });
-    });
-
-    document.querySelectorAll('.notify-btn').forEach(button => {
-        button.addEventListener('click', async (e) => {
-            const id = e.currentTarget.dataset.id;
-            const { data: perfil } = await supabase
-                .from('perfiles')
-                .select(`*, cuentas_madre(*)`)
-                .eq('id', id)
-                .single();
-            abrirMenuNotificar(perfil);
-        });
-    });
-
+    document.querySelectorAll('.edit-perfil-btn').forEach(button => { button.addEventListener('click', (e) => { abrirModalEditar(e.currentTarget.dataset); }); });
+    document.querySelectorAll('.renew-btn').forEach(button => { button.addEventListener('click', (e) => { const id = e.currentTarget.dataset.id; const fechaActual = e.currentTarget.dataset.fecha; renovarPerfil(id, fechaActual); }); });
+    document.querySelectorAll('.notify-btn').forEach(button => { button.addEventListener('click', async (e) => { const id = e.currentTarget.dataset.id; const { data: perfil } = await supabase.from('perfiles').select(`*, cuentas_madre(*)`).eq('id', id).single(); abrirMenuNotificar(perfil); }); });
 
     // --- Pop-up de Advertencia Persistente ---
     let alertMessage = '';
@@ -237,8 +203,7 @@ function abrirModalEditar(perfilData) {
     document.getElementById('edit-perfil-nombre').value = perfilData.nombre;
     document.getElementById('edit-perfil-estado').value = perfilData.estado;
     document.getElementById('edit-perfil-fecha').value = perfilData.fecha;
-    document.getElementById('edit-perfil-telefono').value = perfilData.wsp; // Rellena el WSP
-    
+    document.getElementById('edit-perfil-telefono').value = perfilData.wsp;
     document.getElementById('modal-editar-perfil').style.display = 'flex';
 }
 
@@ -246,13 +211,12 @@ function abrirModalEditar(perfilData) {
 async function guardarCambiosPerfil(e) {
     e.preventDefault();
     const button = e.target.querySelector('button');
-    button.disabled = true;
-    button.textContent = 'Guardando...';
+    button.disabled = true; button.textContent = 'Guardando...';
 
     const id = document.getElementById('edit-perfil-id').value;
     const nombre_perfil = document.getElementById('edit-perfil-nombre').value;
     const estado = document.getElementById('edit-perfil-estado').value;
-    const wsp = document.getElementById('edit-perfil-telefono').value; // Lee el WSP
+    const wsp = document.getElementById('edit-perfil-telefono').value;
     let fecha_vencimiento_cliente = document.getElementById('edit-perfil-fecha').value;
 
     if (estado === 'libre' || estado === 'huerfano') {
@@ -260,34 +224,22 @@ async function guardarCambiosPerfil(e) {
     }
 
     const { error } = await supabase
-        .from('perfiles')
-        .update({
+        .from('perfiles').update({
             nombre_perfil: nombre_perfil,
             estado: estado,
             fecha_vencimiento_cliente: fecha_vencimiento_cliente,
-            wsp: wsp // Guarda el WSP
-        })
-        .eq('id', id);
+            wsp: wsp
+        }).eq('id', id);
 
-    if (error) {
-        alert('Error al guardar cambios: ' + error.message);
-    } else {
-        document.getElementById('modal-editar-perfil').style.display = 'none';
-        window.dispatchEvent(new CustomEvent('refrescarVista'));
-    }
-
-    button.disabled = false;
-    button.textContent = 'Guardar Cambios';
+    if (error) { alert('Error al guardar cambios: ' + error.message); }
+    else { document.getElementById('modal-editar-perfil').style.display = 'none'; window.dispatchEvent(new CustomEvent('refrescarVista')); }
+    button.disabled = false; button.textContent = 'Guardar Cambios';
 }
 
 // --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS ---
 export async function iniciarRescateHuerfano(cuentaMadre) {
-    
     const { data: huerfanos, error } = await supabase
-        .from('perfiles')
-        .select('id, nombre_perfil, fecha_vencimiento_cliente, wsp')
-        .eq('estado', 'huerfano');
-
+        .from('perfiles').select('id, nombre_perfil, fecha_vencimiento_cliente, wsp').eq('estado', 'huerfano');
     if (error) { alert('Error al buscar huérfanos: ' + error.message); return; }
     if (huerfanos.length === 0) { alert('¡Buenas noticias! No hay perfiles huérfanos para rescatar.'); return; }
 
@@ -295,23 +247,17 @@ export async function iniciarRescateHuerfano(cuentaMadre) {
     huerfanos.forEach((huerfano, index) => {
         const fechaISO = huerfano.fecha_vencimiento_cliente ? new Date(huerfano.fecha_vencimiento_cliente).toISOString() : '';
         const wsp = huerfano.wsp || '';
-        
         listaHtml += `
             <div class="huerfano-option">
                 <input type="radio" name="huerfano_id" id="h_${huerfano.id}" 
-                       value="${huerfano.id}" 
-                       data-nombre="${huerfano.nombre_perfil}"
-                       data-fecha="${fechaISO}"
-                       data-wsp="${wsp}" 
+                       value="${huerfano.id}" data-nombre="${huerfano.nombre_perfil}" data-fecha="${fechaISO}" data-wsp="${wsp}" 
                        ${index === 0 ? 'checked' : ''}>
                 <label for="h_${huerfano.id}">${huerfano.nombre_perfil}</label>
-            </div>
-        `;
+            </div>`;
     });
 
     document.getElementById('modal-rescate-body').innerHTML = listaHtml;
     document.getElementById('modal-rescate').style.display = 'flex';
-
     const confirmarBtn = document.getElementById('modal-rescate-confirmar');
     const nuevoBtn = confirmarBtn.cloneNode(true);
     confirmarBtn.parentNode.replaceChild(nuevoBtn, confirmarBtn);
@@ -324,10 +270,7 @@ async function confirmarRescate(cuentaMadre) {
 
     const { data: perfilLibre, error: findError } = await supabase
         .from('perfiles').select('id').eq('cuenta_madre_id', cuentaMadre.id).eq('estado', 'libre').limit(1).single();
-    if (findError || !perfilLibre) {
-        alert(`¡Error! Esta cuenta madre no tiene perfiles libres para realizar el rescate.`);
-        return;
-    }
+    if (findError || !perfilLibre) { alert(`¡Error! Esta cuenta madre no tiene perfiles libres para realizar el rescate.`); return; }
 
     const perfilHuerfanoId = seleccionado.value;
     const perfilHuerfanoNombre = seleccionado.dataset.nombre;
@@ -335,34 +278,35 @@ async function confirmarRescate(cuentaMadre) {
     const perfilHuerfanoWSP = seleccionado.dataset.wsp || null;
 
     const { error: updateError } = await supabase
-        .from('perfiles')
-        .update({
+        .from('perfiles').update({
             nombre_perfil: perfilHuerfanoNombre,
             estado: 'asignado',
             fecha_vencimiento_cliente: perfilHuerfanoFecha,
             wsp: perfilHuerfanoWSP
-        })
-        .eq('id', perfilLibre.id); 
-
+        }).eq('id', perfilLibre.id); 
     if (updateError) { alert('Error al actualizar el perfil libre: ' + updateError.message); return; }
 
     await supabase.from('perfiles').delete().eq('id', perfilHuerfanoId);
-
     document.getElementById('modal-rescate').style.display = 'none';
     mostrarMensajeCliente(cuentaMadre, perfilHuerfanoNombre, null, 'reactiva');
     window.dispatchEvent(new CustomEvent('refrescarVista'));
 }
 
 
-// --- 4.4 LÓGICA DE RENOVACIÓN ---
+// --- 4.4 LÓGICA DE RENOVACIÓN (¡CORREGIDA!) ---
 async function renovarPerfil(id, fechaActualISO) {
     let fechaBase;
+    
+    // ¡AQUÍ TAMBIÉN ESTÁ LA CORRECIÓN!
+    // Forzamos la zona horaria al leer la fecha base
     if (fechaActualISO && fechaActualISO !== 'null' && fechaActualISO !== 'undefined') {
-        fechaBase = new Date(fechaActualISO);
+        fechaBase = new Date(fechaActualISO + 'T00:00:00-05:00');
     } else {
         fechaBase = new Date();
     }
-    fechaBase.setHours(0, 0, 0, 0);
+    
+    // La fecha base ya está en la zona horaria correcta
+    fechaBase.setHours(0, 0, 0, 0); 
     fechaBase.setDate(fechaBase.getDate() + 30);
     
     const nuevaFecha = fechaBase.toISOString();
@@ -378,11 +322,8 @@ async function renovarPerfil(id, fechaActualISO) {
             estado: 'asignado'
         }).eq('id', id);
 
-    if (error) {
-        alert('Error al renovar el perfil: ' + error.message);
-    } else {
-        window.dispatchEvent(new CustomEvent('refrescarVista'));
-    }
+    if (error) { alert('Error al renovar el perfil: ' + error.message); }
+    else { window.dispatchEvent(new CustomEvent('refrescarVista')); }
 }
 
 // --- 4.5 LÓGICA DE NOTIFICACIÓN WHATSAPP ---
@@ -406,7 +347,6 @@ function abrirMenuNotificar(perfil) {
     
     textoMensaje = textoMensaje.replace(/\[NOMBRE\]/g, perfil.nombre_perfil);
     
-    // Si la cuenta madre no existe (perfil huérfano), no podemos rellenar los datos
     if (!perfil.cuentas_madre) {
         alert("Error: No se pueden enviar datos de una cuenta eliminada (perfil huérfano).");
         return;
@@ -417,17 +357,15 @@ function abrirMenuNotificar(perfil) {
     textoMensaje = textoMensaje.replace(/\[PASS\]/g, perfil.cuentas_madre.contrasena);
     
     if (perfil.fecha_vencimiento_cliente) {
-        const nuevaFecha = new Date(perfil.fecha_vencimiento_cliente).toLocaleDateString('es-ES');
+        // ¡AQUÍ TAMBIÉN VA LA CORRECIÓN!
+        const nuevaFecha = new Date(perfil.fecha_vencimiento_cliente + 'T00:00:00-05:00').toLocaleDateString('es-ES');
         textoMensaje = textoMensaje.replace(/\[NUEVA_FECHA\]/g, nuevaFecha);
     }
     
     const textoCodificado = encodeURIComponent(textoMensaje);
     const telefono = perfil.wsp;
 
-    if (!telefono) {
-        alert("Error: Este perfil no tiene un número de teléfono guardado.");
-        return;
-    }
+    if (!telefono) { alert("Error: Este perfil no tiene un número de teléfono guardado."); return; }
 
     const urlWhatsApp = `https://wa.me/${telefono}?text=${textoCodificado}`;
     window.open(urlWhatsApp, '_blank');
