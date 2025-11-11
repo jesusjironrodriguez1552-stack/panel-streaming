@@ -1,93 +1,37 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="style.css"> 
-</head>
-<body>
-    <header>
-        <h1>Mi Panel de Control</h1>
-        <div class="user-info">
-            <span id="user-email"></span>
-            <button id="logout-button">Cerrar Sesión</button>
-        </div>
-    </header>
+<div id="modal-editar-perfil" class="modal-backdrop">
+    <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <h3>Editar Perfil</h3>
+        <form id="edit-perfil-form">
+            <input type="hidden" id="edit-perfil-id">
+            
+            <label for="edit-perfil-nombre">Nombre del Perfil:</label>
+            <input type="text" id="edit-perfil-nombre" required>
+            
+            <label for="edit-perfil-estado">Estado:</label>
+            <select id="edit-perfil-estado">
+                <option value="asignado">Asignado</option>
+                <option value="libre">Libre</option>
+                <option value="huerfano">Huérfano</option>
+            </select>
+            
+            <label for="edit-perfil-fecha">Fecha Vencimiento (si está asignado):</label>
+            <input type="date" id="edit-perfil-fecha">
+            
+            <button type="submit" class="btn">Guardar Cambios</button>
+        </form>
+    </div>
+</div>
 
-    <nav class="tab-nav">
-        <button class="tab-button active" data-tab="gestion">Gestión de Cuentas</button>
-        <button class="tab-button" data-tab="perfiles">Control de Perfiles</button>
-        <button class="tab-button" data-tab="pagos">Control de Pagos</button>
-    </nav>
-
-    <main>
+<div id="modal-rescate" class="modal-backdrop">
+    <div class="modal-content">
+        <span class="modal-close" id="modal-rescate-close">&times;</span>
+        <h3>Rescatar Perfil Huérfano</h3>
+        <p>Selecciona el perfil "huérfano" que quieres mover a esta nueva cuenta:</p>
         
-        <div id="gestion" class="tab-content active">
-            
-            <div class="form-container">
-                <h3>Añadir Nueva Cuenta Madre (Stock)</h3>
-                <form id="stock-form">
-                    <div class="form-group">
-                        <label for="plataforma-input">Plataforma:</label>
-                        <input type="text" id="plataforma-input" placeholder="Ej: NETFLIX PREMIUM" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email-input">Correo:</label>
-                        <input type="email" id="email-input" placeholder="nuevo@correo.com" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password-input">Contraseña:</label>
-                        <input type="text" id="password-input" placeholder="Clave123" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="perfiles-input">Cantidad de Perfiles (Número):</label>
-                        <input type="number" id="perfiles-input" min="1" placeholder="Ej: 5" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="fecha-proveedor-input">Fecha de Pago al Proveedor:</label>
-                        <input type="date" id="fecha-proveedor-input" required>
-                    </div>
-                    <button type="submit">Guardar Cuenta</button>
-                    <p id="form-message" class="success"></p>
-                </form>
+        <div id="modal-rescate-body">
             </div>
-
-            <div id="output-area" class="form-container" style="display: none;">
-                <h4>¡Copia y pega esto para tu cliente!</h4>
-                <textarea id="output-text" rows="7" style="width: 100%; font-family: monospace;"></textarea>
-            </div>
-            
-            <div class="form-container" style="margin-top: 20px;">
-                <h3>Mis Cuentas Madre (Stock)</h3>
-                <ul id="cuentas-madre-list">
-                    <li>Cargando...</li>
-                </ul>
-            </div>
-        </div>
-
-        <div id="perfiles" class="tab-content">
-            <div class="form-container">
-                <h3>Todos los Perfiles</h3>
-                <p>Aquí verás una lista de todos los perfiles individuales y su estado.</p>
-                <ul id="perfiles-list">
-                    <li>Cargando...</li>
-                </ul>
-            </div>
-        </div>
-
-        <div id="pagos" class="tab-content">
-            <div class="form-container">
-                <h3>Control de Pagos a Proveedor</h3>
-                <p>Aquí verás las cuentas que están por vencer y debes pagar pronto.</p>
-                <ul id="pagos-list">
-                    <li>Cargando...</li>
-                </ul>
-            </div>
-        </div>
-
-    </main>
-    
-    <script type="module" src="script.js"></script>
-</body>
-</html>
+        
+        <button type="button" class="btn" id="modal-rescate-confirmar">Confirmar Rescate</button>
+    </div>
+</div>
