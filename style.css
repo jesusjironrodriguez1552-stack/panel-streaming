@@ -459,3 +459,48 @@ nav.tabs {
 .renew-btn:hover {
     background-color: #2ecc71;
 }
+/* =================================================================
+   12. NUEVOS ESTILOS (Resumen y Búsqueda de Perfiles)
+   ================================================================= */
+
+/* Contenedor del header de la pestaña de perfiles */
+.perfiles-header {
+    display: flex;
+    flex-wrap: wrap; /* Permite que se apilen en pantallas pequeñas */
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 20px;
+}
+
+/* El resumen de perfiles (ocupa el espacio disponible) */
+.perfiles-header .stock-summary {
+    flex-grow: 1; /* Hace que ocupe el espacio */
+    margin-bottom: 0; /* Quitamos el margen que tenía */
+}
+
+/* Colores para el nuevo resumen */
+#perfiles-vencidos { color: #e74c3c; font-weight: bold; }
+#perfiles-hoy { color: #f39c12; font-weight: bold; }
+#perfiles-pronto { color: #f1c40f; font-weight: bold; }
+
+
+/* El contenedor de la barra de búsqueda */
+.search-container {
+    flex-basis: 300px; /* Ancho base */
+}
+
+#perfiles-search-input {
+    width: 100%;
+    padding: 12px;
+    font-size: 1em;
+    border: 1px solid #555;
+    background-color: #222;
+    color: #fff;
+    border-radius: 6px;
+}
+#perfiles-search-input:focus {
+    border-color: #3498db;
+}
