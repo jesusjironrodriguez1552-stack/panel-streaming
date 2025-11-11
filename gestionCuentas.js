@@ -1,5 +1,5 @@
 //
-// --- gestionCuentas.js (VERSIÓN CORREGIDA) ---
+// --- gestionCuentas.js (VERSIÓN FINAL COMPLETA) ---
 //
 import { supabase } from './supabaseClient.js'
 // Importamos las funciones de 'utils.js' que este módulo necesita
@@ -8,9 +8,7 @@ import { showMessage, mostrarMensajeCliente } from './utils.js'
 // Importamos la función de perfiles para poder refrescarla
 import { cargarTodosLosPerfiles } from './gestionPerfiles.js'
 
-// --- ¡NUEVO! ---
 // Esta variable guardará la función de "rescate" que 'main.js' nos pasa.
-// La guardamos para poder refrescar la lista sin perder la función.
 let _onReactivaClick = null;
 
 // --- 3.1: INICIALIZACIÓN Y RESUMEN DE STOCK ---
@@ -93,7 +91,7 @@ async function guardarNuevaCuenta(e) {
     } else {
         showMessage('form-message', '¡Cuenta y perfiles guardados con éxito!', true);
         document.getElementById('stock-form').reset();
-        cargarCuentasMadre(); // Recargamos la lista (ya no necesita el param)
+        cargarCuentasMadre(); // Recargamos la lista
     }
     
     button.disabled = false;
@@ -102,10 +100,9 @@ async function guardarNuevaCuenta(e) {
 
 // --- 3.3: LÓGICA DE LA LISTA (Cargar, Asignar, Borrar) ---
 
-// ¡CORRECCIÓN 1! La función acepta el parámetro 'onReactivaClick'
 export async function cargarCuentasMadre(onReactivaClick) {
     
-    // ¡NUEVO! Si recibimos la función, la guardamos en nuestra variable
+    // Si recibimos la función de reactivación, la guardamos
     if (onReactivaClick) {
         _onReactivaClick = onReactivaClick;
     }
@@ -121,6 +118,8 @@ export async function cargarCuentasMadre(onReactivaClick) {
             *,
             perfiles ( id, estado )
         `)
+        // ¡NUEVO! Filtramos para no mostrar las 'eliminadas'
+        .not('estado', 'eq', 'eliminado') 
         .order('id', { ascending: false });
 
     if (error) {
@@ -139,6 +138,9 @@ export async function cargarCuentasMadre(onReactivaClick) {
         const perfilesLibres = cuenta.perfiles ? cuenta.perfiles.filter(p => p.estado === 'libre').length : 0;
         const itemClass = esArchivada ? 'stock-item-archivado' : 'stock-item';
         
+        // El botón ahora cambiará de texto, pero la acción será la misma
+        const botonBorrarTexto = esArchivada ? 'Eliminar (Definitivo)' : 'Eliminar (Archivar)';
+        
         listElement.innerHTML += `
             <li class="${itemClass}">
                 <strong>${cuenta.plataforma.toUpperCase()}</strong>
@@ -151,10 +153,9 @@ export async function cargarCuentasMadre(onReactivaClick) {
                 ${!esArchivada ? `
                     <button type="button" class="btn-small assign-btn" data-id="${cuenta.id}">Asignar (Nuevo)</button>
                     <button type="button" class="btn-small reactiva-btn" data-id="${cuenta.id}">Asignar (Reactiva)</button>
-                    <button type="button" class="btn-small delete-btn" data-id="${cuenta.id}">Archivar</button>
-                ` : `
-                    <button type="button" class="btn-small delete-btn" data-id="${cuenta.id}">Eliminar Sutil</button>
-                `}
+                ` : ''}
+                
+                <button type="button" class="btn-small delete-btn btn-danger" data-id="${cuenta.id}">${botonBorrarTexto}</button>
             </li>
         `;
     });
@@ -164,7 +165,7 @@ export async function cargarCuentasMadre(onReactivaClick) {
         button.addEventListener('click', () => {
             const id = button.dataset.id;
             const cuenta = cuentas.find(c => c.id == id);
-            borrarCuenta(cuenta);
+            borrarCuenta(cuenta); // Llama a la nueva función de borrado
         });
     });
 
@@ -176,13 +177,13 @@ export async function cargarCuentasMadre(onReactivaClick) {
         });
     });
     
-    // ¡CORRECCIÓN 2! El listener ahora usa la función guardada '_onReactivaClick'
     document.querySelectorAll('.reactiva-btn').forEach(button => {
         button.addEventListener('click', () => {
             const id = button.dataset.id;
             const cuenta = cuentas.find(c => c.id == id);
             if (_onReactivaClick) {
-                _onReactivaClick(cuenta);
+                // Llama a la función 'iniciarRescateHuerfano' de gestionPerfiles.js
+                _onReactivaClick(cuenta); 
             } else {
                 console.error("Error: La función de reactivación no está cargada.");
             }
@@ -239,7 +240,6 @@ async function asignarPerfil(cuenta, tipo) {
         
         } else {
              // Es una reactivación y no hay perfiles libres
-             // Esto ahora se maneja con el botón 'reactiva' y el modal.
              alert('Error: No hay perfiles libres. Usa el botón "Asignar (Reactiva)" para rescatar un perfil huérfano.');
              return;
         }
@@ -272,62 +272,60 @@ async function asignarPerfil(cuenta, tipo) {
     cargarCuentasMadre(); // Recargamos
 }
 
-// --- 3.5: LÓGICA DE BORRADO (¡CON REEMPLAZO SUTIL!) ---
+
+// --- 3.5: LÓGICA DE BORRADO (¡NUEVA VERSIÓN DE 1 SOLO PASO!) ---
 
 async function borrarCuenta(cuenta) {
-    if (cuenta.estado === 'archivada') {
-        
-        // --- "ELIMINAR SUTIL" (Reemplazo) ---
-        if (!confirm('Esta cuenta está archivada. ¿Quieres ELIMINARLA SUTILMENTE? (Se reemplazará el email/pass y se marcará como "eliminado")')) return;
+    
+    // El estado ya no importa, unificamos la lógica.
+    let confirmMessage = '';
+    if (cuenta.estado === 'activa') {
+        confirmMessage = '¿Seguro que quieres ELIMINAR esta cuenta?\n\n¡Esta acción es permanente!\n1. Los perfiles ASIGNADOS se marcarán como "huérfanos".\n2. Los perfiles LIBRES se borrarán.\n3. El email/pass de la cuenta madre será reemplazado.';
+    } else { // 'archivada'
+        confirmMessage = '¿Seguro que quieres ELIMINAR esta cuenta archivada permanentemente?\n\nLos perfiles huérfanos se mantendrán, pero la cuenta madre será reemplazada.';
+    }
 
-        const { error: errorReemplazo } = await supabase
-            .from('cuentas_madre')
-            .update({
-                email: `eliminada_${cuenta.id}@anulada.com`,
-                contrasena: 'xxx-eliminada-xxx',
-                estado: 'eliminado' 
-            })
-            .eq('id', cuenta.id);
+    if (!confirm(confirmMessage)) return;
 
-        if (errorReemplazo) {
-            alert('Error al eliminar sutilmente: ' + errorReemplazo.message);
-            return;
-        }
-        
-        alert('Cuenta eliminada sutilmente (datos reemplazados).');
-        cargarCuentasMadre();
+    // --- INICIO DE LA ACCIÓN ---
 
-    } else {
-        // --- ARCHIVADO (Pone perfiles "huérfanos") ---
-        if (!confirm('¿Seguro que quieres ARCHIVAR esta cuenta madre? (Perfiles asignados serán "huérfanos" y libres se borrarán)')) return;
-
-        // 1. Archivar la cuenta madre
-        const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivado' }).eq('id', cuenta.id);
-        
-        if (errorUpdate) {
-            alert('Error al archivar cuenta: ' + errorUpdate.message);
-            return;
-        }
-        
-        // 2. Poner ASIGNADOS como "huerfano"
+    // 1. (Solo si estaba activa) Poner ASIGNADOS como "huerfano" y Borrar "libres"
+    if (cuenta.estado === 'activa') {
+        // 1a. Poner ASIGNADOS como "huerfano"
         await supabase
             .from('perfiles')
             .update({ estado: 'huerfano' })
             .eq('cuenta_madre_id', cuenta.id)
             .eq('estado', 'asignado');
 
-        // 3. Borrar los "libres"
+        // 1b. Borrar los "libres"
         await supabase
             .from('perfiles')
             .delete()
             .eq('cuenta_madre_id', cuenta.id)
             .eq('estado', 'libre');
-            
-        alert('Cuenta archivada. Perfiles asignados marcados como "huérfanos". Perfiles libres eliminados.');
-        cargarCuentasMadre();
-        
-        if (document.getElementById('perfiles').classList.contains('active')) {
-             cargarTodosLosPerfiles();
-        }
+    }
+
+    // 2. "ELIMINAR SUTIL" (Reemplazo)
+    const { error: errorReemplazo } = await supabase
+        .from('cuentas_madre')
+        .update({
+            email: `eliminada_${cuenta.id}@anulada.com`,
+            contrasena: 'xxx-eliminada-xxx',
+            estado: 'eliminado' // El estado final es 'eliminado'
+        })
+        .eq('id', cuenta.id);
+
+    if (errorReemplazo) {
+        alert('Error al eliminar sutilmente: ' + errorReemplazo.message);
+        return;
+    }
+    
+    alert('¡Cuenta eliminada sutilmente con éxito!');
+    
+    // 3. Recargar vistas
+    cargarCuentasMadre();
+    if (document.getElementById('perfiles').classList.contains('active')) {
+         cargarTodosLosPerfiles();
     }
 }
