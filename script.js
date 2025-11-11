@@ -35,7 +35,7 @@ if (loginForm) {
         const password = document.getElementById('password').value
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) {
-            document.getElementById('error-message').textContent = 'Error: ' + error.message
+            document.getElementById('error-message').textContent = 'Error: 'M' + error.message
         } else {
             window.location.href = 'index.html'
         }
@@ -292,7 +292,7 @@ PERFIL: ${nombrePerfil}
 }
 
 // ==========================================================
-// ¡¡AQUÍ ESTÁ LA LÓGICA CORREGIDA!!
+// ¡¡AQUÍ ESTÁ LA LÓGICA CORREGIDA (Versión 2)!!
 // ==========================================================
 async function borrarCuenta(cuenta) {
     if (cuenta.estado === 'archivada') {
@@ -300,7 +300,7 @@ async function borrarCuenta(cuenta) {
         if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Los perfiles huérfanos NO se borrarán)')) return;
         
         // ¡¡CORRECCIÓN!! Solo borramos la cuenta madre.
-        // La base de datos (si está en 'Set Null') se encargará de los perfiles.
+        // La base de datos (con 'Set Null') se encargará de los perfiles huérfanos.
         const { error: errorCuenta } = await supabase.from('cuentas_madre').delete().eq('id', cuenta.id);
         
         if (errorCuenta) {
@@ -310,7 +310,7 @@ async function borrarCuenta(cuenta) {
         
         alert('Cuenta madre borrada permanentemente. Los perfiles huérfanos se mantienen.');
         cargarCuentasMadre();
-        // Deberíamos recargar la pestaña de perfiles si está activa
+        // Recargamos la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
             cargarTodosLosPerfiles();
         }
@@ -320,24 +320,30 @@ async function borrarCuenta(cuenta) {
         if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles se marcarán como "huérfanos".')) return;
 
         // 1. Archivar la cuenta madre
-        const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivada' }).eq('id', cuenta.id);
+        const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivado' }).eq('id', cuenta.id);
         
         if (errorUpdate) {
             alert('Error al archivar cuenta: ' + errorUpdate.message);
             return;
         }
         
-        // 2. Poner todos sus perfiles "libres" o "asignados" como "huerfano"
-        // (Esto es clave para tu Pestaña de Perfiles)
+        // 2. ¡CORRECCIÓN! Poner ASIGNADOS como "huerfano"
         await supabase
             .from('perfiles')
             .update({ estado: 'huerfano' })
             .eq('cuenta_madre_id', cuenta.id)
-            .in('estado', ['libre', 'asignado']);
+            .eq('estado', 'asignado'); // ¡Solo los asignados!
+
+        // 3. ¡CORRECCIÓN! Borrar los "libres"
+        await supabase
+            .from('perfiles')
+            .delete()
+            .eq('cuenta_madre_id', cuenta.id)
+            .eq('estado', 'libre'); // ¡Borra los libres!
             
-        alert('Cuenta archivada. Sus perfiles ahora son "huérfanos". Presiona "Borrar (Definitivo)" para eliminar la cuenta madre.');
+        alert('Cuenta archivada. Perfiles asignados marcados como "huérfanos". Perfiles libres eliminados.');
         cargarCuentasMadre();
-        // Deberíamos recargar la pestaña de perfiles si está activa
+        // Recargamos la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
             cargarTodosLosPerfiles();
         }
@@ -383,6 +389,8 @@ async function cargarTodosLosPerfiles() {
             info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
         } else if (perfil.estado === 'huerfano') {
             info = '¡CUENTA MADRE ELIMINADA!';
+        } else if (perfil.estado === 'libre') {
+            info = `Plataforma: ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'}`;
         }
 
         if (perfil.estado === 'asignado') {
