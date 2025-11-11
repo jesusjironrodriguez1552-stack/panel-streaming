@@ -51,7 +51,7 @@ if (logoutButton) {
     })
 }
 
-// --- 3. LÓGICA DE LA APP (ESTRUCTURA DE PESTAÑAS) ---
+// --- 3. LÓGICA DE LA APP (¡NUEVA ESTRUCTURA DE PESTAÑAS!) ---
 
 function initApp() {
     const tabs = document.querySelectorAll('.tab-button');
@@ -292,70 +292,52 @@ PERFIL: ${nombrePerfil}
 }
 
 // ==========================================================
-// LÓGICA CORREGIDA DE BORRADO
+// ¡¡AQUÍ ESTÁ LA LÓGICA CORREGIDA!!
 // ==========================================================
 async function borrarCuenta(cuenta) {
     if (cuenta.estado === 'archivada') {
         // --- BORRADO PERMANENTE ---
-        if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Los perfiles de clientes se mantendrán como huérfanos)')) return;
+        if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Los perfiles huérfanos NO se borrarán)')) return;
         
-        // Primero, borramos SOLO los perfiles "libres" de ESTA cuenta (sin cliente asignado)
-        await supabase
-            .from('perfiles')
-            .delete()
-            .eq('cuenta_madre_id', cuenta.id)
-            .eq('estado', 'libre');
-        
-        // Ahora sí, borramos la cuenta madre
-        // Los perfiles "huérfanos" (asignados) quedarán en la DB porque tienen cuenta_madre_id = null
-        const { error: errorCuenta } = await supabase
-            .from('cuentas_madre')
-            .delete()
-            .eq('id', cuenta.id);
+        // ¡¡CORRECCIÓN!! Solo borramos la cuenta madre.
+        // La base de datos (si está en 'Set Null') se encargará de los perfiles.
+        const { error: errorCuenta } = await supabase.from('cuentas_madre').delete().eq('id', cuenta.id);
         
         if (errorCuenta) {
             alert('Error al borrar cuenta: ' + errorCuenta.message);
             return;
         }
         
-        alert('Cuenta borrada permanentemente. Los perfiles de clientes se mantienen como huérfanos.');
+        alert('Cuenta madre borrada permanentemente. Los perfiles huérfanos se mantienen.');
         cargarCuentasMadre();
+        // Deberíamos recargar la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
             cargarTodosLosPerfiles();
         }
 
     } else {
-        // --- ARCHIVADO ---
-        if (!confirm('¿Seguro que quieres ARCHIVAR esta cuenta? Los perfiles de clientes quedarán como "huérfanos".')) return;
+        // --- ARCHIVADO (Pone perfiles "huérfanos") ---
+        if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles se marcarán como "huérfanos".')) return;
 
         // 1. Archivar la cuenta madre
-        const { error: errorUpdate } = await supabase
-            .from('cuentas_madre')
-            .update({ estado: 'archivada' })
-            .eq('id', cuenta.id);
+        const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivada' }).eq('id', cuenta.id);
         
         if (errorUpdate) {
             alert('Error al archivar cuenta: ' + errorUpdate.message);
             return;
         }
         
-        // 2. SOLO los perfiles ASIGNADOS pasan a "huerfano"
-        // Los perfiles "libres" se borran directamente (no tienen cliente)
+        // 2. Poner todos sus perfiles "libres" o "asignados" como "huerfano"
+        // (Esto es clave para tu Pestaña de Perfiles)
         await supabase
             .from('perfiles')
             .update({ estado: 'huerfano' })
             .eq('cuenta_madre_id', cuenta.id)
-            .eq('estado', 'asignado');
-        
-        // 3. Borrar los perfiles libres (sin cliente asignado)
-        await supabase
-            .from('perfiles')
-            .delete()
-            .eq('cuenta_madre_id', cuenta.id)
-            .eq('estado', 'libre');
+            .in('estado', ['libre', 'asignado']);
             
-        alert('Cuenta archivada. Perfiles de clientes ahora son "huérfanos". Los perfiles libres fueron eliminados.');
+        alert('Cuenta archivada. Sus perfiles ahora son "huérfanos". Presiona "Borrar (Definitivo)" para eliminar la cuenta madre.');
         cargarCuentasMadre();
+        // Deberíamos recargar la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
             cargarTodosLosPerfiles();
         }
@@ -369,7 +351,8 @@ async function cargarTodosLosPerfiles() {
     const listElement = document.getElementById('perfiles-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
-    // Ahora la información de la cuenta madre PUEDE SER NULA
+    // ¡¡CORRECCIÓN!! Ahora la información de la cuenta madre PUEDE SER NULA
+    // por eso el 'cuentas_madre!inner(...)' se cambia a 'cuentas_madre(...)'
     const { data: perfiles, error } = await supabase
         .from('perfiles')
         .select(`
@@ -395,7 +378,7 @@ async function cargarTodosLosPerfiles() {
         let estadoClass = `estado-${perfil.estado}`;
         let info = '';
         
-        // Manejar perfiles huérfanos que ya no tienen cuenta madre
+        // ¡¡CORRECCIÓN!! Manejar perfiles huérfanos que ya no tienen cuenta madre
         if (perfil.cuentas_madre) {
             info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
         } else if (perfil.estado === 'huerfano') {
