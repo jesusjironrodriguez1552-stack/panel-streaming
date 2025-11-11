@@ -1,8 +1,7 @@
 //
-// --- gestionPerfiles.js (COMPLETO Y FINAL) ---
+// --- gestionPerfiles.js (NUEVA VERSIÓN CON GRUPOS Y RENOVACIÓN) ---
 //
 import { supabase } from './supabaseClient.js'
-// Importamos AMBAS funciones de utils.js
 import { showMessage, mostrarMensajeCliente } from './utils.js'
 
 // --- 4.1: LÓGICA DE LA PESTAÑA (Cargar Lista) ---
@@ -31,89 +30,140 @@ export async function cargarTodosLosPerfiles() {
         return;
     }
 
-    listElement.innerHTML = '';
+    // --- ¡NUEVO! Lógica de Agrupación ---
+    const perfilesAgrupados = {};
 
-    // --- Sistema de Alertas ---
     let vencidosCount = 0;
     let vencenProntoCount = 0;
-
     const hoy = new Date();
     hoy.setHours(0,0,0,0);
     const tresDias = new Date(hoy);
     tresDias.setDate(hoy.getDate() + 3);
-    // --- Fin Sistema de Alertas ---
 
     perfiles.forEach(perfil => {
-        let estadoClass = `estado-${perfil.estado}`;
-        let info = '';
-        let estadoReal = perfil.estado;
-        let itemExtraClass = ''; // Clase para colorear la fila
-
+        // 1. Determinar el grupo
+        let grupo = 'Perfiles Huérfanos'; // Default
         if (perfil.cuentas_madre) {
-            info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
-        } else if (perfil.estado === 'huerfano') {
-            info = '¡CUENTA MADRE ELIMINADA!';
+            grupo = perfil.cuentas_madre.plataforma.toUpperCase();
+        } else if (perfil.estado === 'libre' && perfil.cuentas_madre) {
+             grupo = perfil.cuentas_madre.plataforma.toUpperCase() + " (Libres)";
         } else if (perfil.estado === 'libre') {
-            info = `Plataforma: ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'}`;
-        }
-
-        // --- Lógica de Vencimiento Mejorada ---
-        if (perfil.estado === 'asignado') {
-            const vence = new Date(perfil.fecha_vencimiento_cliente);
-            
-            if (vence < hoy) {
-                estadoReal = 'vencido';
-                estadoClass = 'estado-vencido';
-                info = `¡VENCIDO! (Desde ${vence.toLocaleDateString('es-ES')})`;
-                itemExtraClass = 'perfil-item-vencido';
-                vencidosCount++;
-            
-            } else if (vence.getTime() === hoy.getTime()) {
-                info = `¡¡VENCE HOY!!`;
-                itemExtraClass = 'perfil-item-hoy';
-                vencenProntoCount++;
-
-            } else if (vence <= tresDias) {
-                info = `Vence pronto: ${vence.toLocaleDateString('es-ES')}`;
-                itemExtraClass = 'perfil-item-pronto';
-                vencenProntoCount++;
-
-            } else {
-                info = `Vence: ${vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
-            }
+            grupo = 'Perfiles Libres (Sin Asignar)';
         }
         
-        const fechaParaInput = perfil.fecha_vencimiento_cliente ? new Date(perfil.fecha_vencimiento_cliente).toISOString().split('T')[0] : '';
+        // 2. Crear el array del grupo si no existe
+        if (!perfilesAgrupados[grupo]) {
+            perfilesAgrupados[grupo] = [];
+        }
 
-        listElement.innerHTML += `
-            <li class="perfil-item ${itemExtraClass}">
-                <div>
-                    <strong>${perfil.nombre_perfil}</strong> <br>
-                    <small>${info}</small>
-                </div>
-                <div class="perfil-controles">
-                    <span class="perfil-estado ${estadoClass}">${estadoReal.toUpperCase()}</span>
-                    
-                    <button class="btn-small edit-perfil-btn" 
-                        data-id="${perfil.id}"
-                        data-nombre="${perfil.nombre_perfil}"
-                        data-estado="${perfil.estado}"
-                        data-fecha="${fechaParaInput}"
-                    >
-                        ✏️ Editar
-                    </button>
-                </div>
-            </li>
-        `;
+        // 3. Añadir el perfil al grupo
+        perfilesAgrupados[grupo].push(perfil);
     });
 
+    // --- Fin Lógica de Agrupación ---
+
+    let htmlFinal = ''; // Aquí construiremos todo el HTML
+
+    // Recorremos el objeto de grupos
+    for (const grupo in perfilesAgrupados) {
+        // Añadimos el título del grupo
+        htmlFinal += `<h2 class="grupo-plataforma">${grupo}</h2>`;
+        
+        // Recorremos los perfiles de ese grupo
+        perfilesAgrupados[grupo].forEach(perfil => {
+            let estadoClass = `estado-${perfil.estado}`;
+            let info = '';
+            let estadoReal = perfil.estado;
+            let itemExtraClass = ''; 
+
+            if (perfil.cuentas_madre) {
+                info = `Email: ${perfil.cuentas_madre.email}`;
+            } else if (perfil.estado === 'huerfano') {
+                info = '¡CUENTA MADRE ELIMINADA!';
+            } else if (perfil.estado === 'libre') {
+                info = `Plataforma: ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'}`;
+            }
+
+            // --- Lógica de Vencimiento Mejorada ---
+            if (perfil.estado === 'asignado') {
+                const vence = new Date(perfil.fecha_vencimiento_cliente);
+                
+                if (vence < hoy) {
+                    estadoReal = 'vencido';
+                    estadoClass = 'estado-vencido';
+                    info = `¡VENCIDO! (Desde ${vence.toLocaleDateString('es-ES')})`;
+                    itemExtraClass = 'perfil-item-vencido';
+                    vencidosCount++;
+                
+                } else if (vence.getTime() === hoy.getTime()) {
+                    info = `¡¡VENCE HOY!!`;
+                    itemExtraClass = 'perfil-item-hoy';
+                    vencenProntoCount++;
+
+                } else if (vence <= tresDias) {
+                    info = `Vence pronto: ${vence.toLocaleDateString('es-ES')}`;
+                    itemExtraClass = 'perfil-item-pronto';
+                    vencenProntoCount++;
+
+                } else {
+                    info = `Vence: ${vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+                }
+            }
+            
+            const fechaParaInput = perfil.fecha_vencimiento_cliente ? new Date(perfil.fecha_vencimiento_cliente).toISOString().split('T')[0] : '';
+
+            // ¡NUEVO! Botón de Renovar (+30 Días)
+            // Solo aparece si el perfil está 'asignado' o 'vencido'
+            const botonRenovar = (perfil.estado === 'asignado' || estadoReal === 'vencido') ?
+                `<button class="btn-small renew-btn" data-id="${perfil.id}" data-fecha="${perfil.fecha_vencimiento_cliente}">
+                    +30 Días
+                 </button>` : '';
+
+            htmlFinal += `
+                <li class="perfil-item ${itemExtraClass}">
+                    <div>
+                        <strong>${perfil.nombre_perfil}</strong> <br>
+                        <small>${info}</small>
+                    </div>
+                    <div class="perfil-controles">
+                        <span class="perfil-estado ${estadoClass}">${estadoReal.toUpperCase()}</span>
+                        
+                        ${botonRenovar}
+                        
+                        <button class="btn-small edit-perfil-btn" 
+                            data-id="${perfil.id}"
+                            data-nombre="${perfil.nombre_perfil}"
+                            data-estado="${perfil.estado}"
+                            data-fecha="${fechaParaInput}"
+                        >
+                            ✏️ Editar
+                        </button>
+                    </div>
+                </li>
+            `;
+        });
+    }
+
+    // Finalmente, inyectamos todo el HTML
+    listElement.innerHTML = htmlFinal;
+
+    // --- Añadir Listeners para los botones ---
     document.querySelectorAll('.edit-perfil-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             abrirModalEditar(e.currentTarget.dataset);
         });
     });
 
-    // --- Lanzar el Pop-up de Advertencia ---
+    // ¡NUEVO! Listener para el botón de Renovar
+    document.querySelectorAll('.renew-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            const fechaActual = e.currentTarget.dataset.fecha;
+            renovarPerfil(id, fechaActual); // Llamamos a la nueva función
+        });
+    });
+
+    // --- Pop-up de Advertencia ---
     if (!sessionStorage.getItem('alertaVencimientoMostrada')) {
         let alertMessage = '';
         if (vencidosCount > 0) {
@@ -131,6 +181,7 @@ export async function cargarTodosLosPerfiles() {
 }
 
 // --- 4.2: LÓGICA DE EDITAR PERFIL (El Lápiz) ---
+// (Esta sección no cambia)
 export function initGestionPerfiles() {
     const editForm = document.getElementById('edit-perfil-form');
     if (editForm) {
@@ -197,9 +248,8 @@ async function guardarCambiosPerfil(e) {
 }
 
 
-// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS (¡CORREGIDA!) ---
-
-// ¡¡AQUÍ ESTÁ EL 'export' QUE FALTABA!!
+// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS ---
+// (Esta sección no cambia, pero la incluimos por si acaso)
 export async function iniciarRescateHuerfano(cuentaMadre) {
     
     const { data: huerfanos, error } = await supabase
@@ -240,8 +290,6 @@ export async function iniciarRescateHuerfano(cuentaMadre) {
     nuevoBtn.onclick = () => confirmarRescate(cuentaMadre);
 }
 
-
-// ¡AQUÍ ESTÁ LA LÓGICA CORREGIDA QUE CONSUME PERFILES!
 async function confirmarRescate(cuentaMadre) {
     const seleccionado = document.querySelector('input[name="huerfano_id"]:checked');
     if (!seleccionado) {
@@ -263,7 +311,7 @@ async function confirmarRescate(cuentaMadre) {
         return;
     }
 
-    // 2. Obtener los datos del huérfano que seleccionamos
+    // 2. Obtener los datos del huérfano
     const perfilHuerfanoId = seleccionado.value;
     const perfilHuerfanoNombre = seleccionado.dataset.nombre;
     const perfilHuerfanoFecha = seleccionado.dataset.fecha ? new Date(seleccionado.dataset.fecha).toISOString() : null;
@@ -276,21 +324,69 @@ async function confirmarRescate(cuentaMadre) {
             estado: 'asignado',
             fecha_vencimiento_cliente: perfilHuerfanoFecha
         })
-        .eq('id', perfilLibre.id); // ¡Actualizamos el perfil LIBRE!
+        .eq('id', perfilLibre.id); 
 
     if (updateError) {
         alert('Error al actualizar el perfil libre: ' + updateError.message);
         return;
     }
 
-    // 4. BORRAR el perfil huérfano (ya no lo necesitamos)
+    // 4. BORRAR el perfil huérfano
     await supabase
         .from('perfiles')
         .delete()
         .eq('id', perfilHuerfanoId);
 
-    // 5. Cerrar modal, mostrar mensaje y refrescar
+    // 5. Refrescar
     document.getElementById('modal-rescate').style.display = 'none';
     mostrarMensajeCliente(cuentaMadre, perfilHuerfanoNombre, null, 'reactiva');
     window.dispatchEvent(new CustomEvent('refrescarVista'));
+}
+
+
+// --- 4.4 ¡NUEVA FUNCIÓN DE RENOVACIÓN! ---
+async function renovarPerfil(id, fechaActualISO) {
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+
+    let fechaBase;
+
+    if (fechaActualISO) {
+        const fechaActual = new Date(fechaActualISO);
+        // Si la fecha actual es *anterior* a hoy (o sea, está vencido)
+        // la nueva base es HOY.
+        if (fechaActual < hoy) {
+            fechaBase = hoy;
+        } else {
+            // Si no, la base es la fecha actual (renovación anticipada)
+            fechaBase = fechaActual;
+        }
+    } else {
+        // Si no tiene fecha (ej. un perfil vencido de alguna forma rara), usa hoy
+        fechaBase = hoy;
+    }
+
+    // Sumamos 30 días a la fecha base
+    fechaBase.setDate(fechaBase.getDate() + 30);
+    const nuevaFecha = fechaBase.toISOString();
+
+    if (!confirm(`¿Renovar este perfil hasta el ${fechaBase.toLocaleDateString('es-ES')}?`)) {
+        return;
+    }
+
+    // Actualizamos la fecha y nos aseguramos que el estado sea 'asignado'
+    const { error } = await supabase
+        .from('perfiles')
+        .update({ 
+            fecha_vencimiento_cliente: nuevaFecha,
+            estado: 'asignado' // Importante por si estaba 'vencido'
+        })
+        .eq('id', id);
+
+    if (error) {
+        alert('Error al renovar el perfil: ' + error.message);
+    } else {
+        // Refrescamos la vista para que se actualice la lista
+        window.dispatchEvent(new CustomEvent('refrescarVista'));
+    }
 }
