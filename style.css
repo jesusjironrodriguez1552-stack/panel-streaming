@@ -399,3 +399,33 @@ nav.tabs {
     background-color: #c0392b;
     color: #fff;
 }
+/* =================================================================
+   10. ESTILOS DE ADVERTENCIA DE VENCIMIENTOS
+   ================================================================= */
+
+/* Fila ROJA (Vencido) */
+.perfil-item-vencido {
+    background-color: #4d2e2e !important; /* Fondo rojo oscuro */
+    border: 1px solid #e74c3c !important; /* Borde rojo */
+}
+.perfil-item-vencido strong {
+    color: #ffc2bd !important;
+}
+
+/* Fila NARANJA (Vence Hoy) */
+.perfil-item-hoy {
+    background-color: #523a23 !important; /* Fondo naranja oscuro */
+    border: 1px solid #f39c12 !important; /* Borde naranja */
+}
+.perfil-item-hoy strong {
+    color: #fde3a7 !important;
+}
+
+/* Fila AMARILLA (Vence Pronto) */
+.perfil-item-pronto {
+    background-color: #524d23 !important; /* Fondo amarillo oscuro */
+    border: 1px solid #f1c40f !important; /* Borde amarillo */
+}
+.perfil-item-pronto strong {
+    color: #fcf4a3 !important;
+}
