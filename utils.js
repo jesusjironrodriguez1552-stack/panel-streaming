@@ -11,32 +11,37 @@ export function showMessage(element, text, isSuccess = true) {
     setTimeout(() => { el.textContent = ''; }, 3000);
 }
 
-// ¡LA FUNCIÓN QUE FALTABA EXPORTAR!
 // Función que genera el texto para copiar
 export function mostrarMensajeCliente(cuenta, nombrePerfil, fechaVence, tipo) {
     let textoCliente = '';
     
     if (tipo === 'nuevo') {
-        const venceFormateado = fechaVence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        textoCliente = `
-CUENTA ${cuenta.plataforma.toUpperCase()}
+        const venceFormateado = fechaVence.toLocaleDateString('es-ES', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric' 
+        });
+        textoCliente = `CUENTA ${cuenta.plataforma.toUpperCase()}
 CORREO: ${cuenta.email}
 CONTRASEÑA: ${cuenta.contrasena}
 PERFIL: ${nombrePerfil}
-VENCE: ${venceFormateado}
-        `.trim();
+VENCE: ${venceFormateado}`;
     } else { // 'reactiva'
-        textoCliente = `
-POR SU SEGURIDAD SE A MODIFICADO EL CORREO DE SU CUENTA:
+        textoCliente = `POR SU SEGURIDAD SE HA MODIFICADO EL CORREO DE SU CUENTA:
 CORREO: ${cuenta.email}
 CONTRASEÑA: ${cuenta.contrasena}
-PERFIL: ${nombrePerfil}
-        `.trim();
+PERFIL: ${nombrePerfil}`;
     }
-
+    
     const outputArea = document.getElementById('output-area');
     const outputText = document.getElementById('output-text');
-    outputText.value = textoCliente; 
-    outputArea.style.display = 'block';
-    outputArea.scrollIntoView({ behavior: 'smooth' });
+    
+    if (outputText) {
+        outputText.value = textoCliente; 
+    }
+    
+    if (outputArea) {
+        outputArea.style.display = 'block';
+        outputArea.scrollIntoView({ behavior: 'smooth' });
+    }
 }
