@@ -1,7 +1,8 @@
 //
-// --- gestionPerfiles.js (NUEVA VERSIÓN CON GRUPOS Y RENOVACIÓN) ---
+// --- gestionPerfiles.js (COMPLETO, FINAL Y CORREGIDO) ---
 //
 import { supabase } from './supabaseClient.js'
+// Importamos AMBAS funciones de utils.js
 import { showMessage, mostrarMensajeCliente } from './utils.js'
 
 // --- 4.1: LÓGICA DE LA PESTAÑA (Cargar Lista) ---
@@ -30,7 +31,7 @@ export async function cargarTodosLosPerfiles() {
         return;
     }
 
-    // --- ¡NUEVO! Lógica de Agrupación ---
+    // --- Lógica de Agrupación ---
     const perfilesAgrupados = {};
 
     let vencidosCount = 0;
@@ -112,7 +113,7 @@ export async function cargarTodosLosPerfiles() {
             
             const fechaParaInput = perfil.fecha_vencimiento_cliente ? new Date(perfil.fecha_vencimiento_cliente).toISOString().split('T')[0] : '';
 
-            // ¡NUEVO! Botón de Renovar (+30 Días)
+            // Botón de Renovar (+30 Días)
             // Solo aparece si el perfil está 'asignado' o 'vencido'
             const botonRenovar = (perfil.estado === 'asignado' || estadoReal === 'vencido') ?
                 `<button class="btn-small renew-btn" data-id="${perfil.id}" data-fecha="${perfil.fecha_vencimiento_cliente}">
@@ -154,7 +155,7 @@ export async function cargarTodosLosPerfiles() {
         });
     });
 
-    // ¡NUEVO! Listener para el botón de Renovar
+    // Listener para el botón de Renovar
     document.querySelectorAll('.renew-btn').forEach(button => {
         button.addEventListener('click', (e) => {
             const id = e.currentTarget.dataset.id;
@@ -175,13 +176,12 @@ export async function cargarTodosLosPerfiles() {
 
         if (alertMessage) {
             alert(alertMessage + "\nRevisa la lista de perfiles marcados en color.");
-            sessionStorage.setItem('alertaVencimientoMostrada', 'true');
+            sessionStorage.setItem('alertaVimcentoMostrada', 'true');
         }
     }
 }
 
 // --- 4.2: LÓGICA DE EDITAR PERFIL (El Lápiz) ---
-// (Esta sección no cambia)
 export function initGestionPerfiles() {
     const editForm = document.getElementById('edit-perfil-form');
     if (editForm) {
@@ -249,7 +249,6 @@ async function guardarCambiosPerfil(e) {
 
 
 // --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS ---
-// (Esta sección no cambia, pero la incluimos por si acaso)
 export async function iniciarRescateHuerfano(cuentaMadre) {
     
     const { data: huerfanos, error } = await supabase
@@ -344,33 +343,32 @@ async function confirmarRescate(cuentaMadre) {
 }
 
 
-// --- 4.4 ¡NUEVA FUNCIÓN DE RENOVACIÓN! ---
+// --- 4.4 ¡NUEVA FUNCIÓN DE RENOVACIÓN! (LÓGICA CORREGIDA PARA TU NEGOCIO) ---
 async function renovarPerfil(id, fechaActualISO) {
-    const hoy = new Date();
-    hoy.setHours(0,0,0,0);
-
+    
     let fechaBase;
 
-    if (fechaActualISO) {
-        const fechaActual = new Date(fechaActualISO);
-        // Si la fecha actual es *anterior* a hoy (o sea, está vencido)
-        // la nueva base es HOY.
-        if (fechaActual < hoy) {
-            fechaBase = hoy;
-        } else {
-            // Si no, la base es la fecha actual (renovación anticipada)
-            fechaBase = fechaActual;
-        }
+    // ¡LÓGICA CORREGIDA!
+    // Comprobamos si existe una fecha de vencimiento anterior
+    if (fechaActualISO && fechaActualISO !== 'null' && fechaActualISO !== 'undefined') {
+        // SIEMPRE usamos la fecha de vencimiento anterior como base,
+        // no importa si está en el pasado.
+        fechaBase = new Date(fechaActualISO);
     } else {
-        // Si no tiene fecha (ej. un perfil vencido de alguna forma rara), usa hoy
-        fechaBase = hoy;
+        // Si por alguna razón no hay fecha (un perfil nuevo al que se le dio renovar), usamos HOY.
+        fechaBase = new Date();
     }
 
-    // Sumamos 30 días a la fecha base
-    fechaBase.setDate(fechaBase.getDate() + 30);
-    const nuevaFecha = fechaBase.toISOString();
+    // Nos aseguramos de ignorar la hora para la suma
+    fechaBase.setHours(0, 0, 0, 0);
 
-    if (!confirm(`¿Renovar este perfil hasta el ${fechaBase.toLocaleDateString('es-ES')}?`)) {
+    // Sumamos 30 días a la fecha base (la fecha de vencimiento original)
+    fechaBase.setDate(fechaBase.getDate() + 30);
+    
+    const nuevaFecha = fechaBase.toISOString();
+    const nuevaFechaFormateada = fechaBase.toLocaleDateString('es-ES');
+
+    if (!confirm(`Se usará la fecha de vencimiento original como base.\n\nNuevo vencimiento: ${nuevaFechaFormateada}\n¿Confirmar renovación?`)) {
         return;
     }
 
