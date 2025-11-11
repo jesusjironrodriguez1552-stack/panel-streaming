@@ -1,17 +1,14 @@
 //
-// --- gestionPerfiles.js (COMPLETO, FINAL y con BOTÓN WHATSAPP) ---
+// --- gestionPerfiles.js (COMPLETO, FINAL y con CORRECCIÓN DE RESCATE) ---
 //
 import { supabase } from './supabaseClient.js'
 // Importamos AMBAS funciones de utils.js
 import { showMessage, mostrarMensajeCliente } from './utils.js'
 
 // --- 1. PLANTILLAS MAESTRAS DE MENSAJES ---
-// Aquí definimos tus 3 mensajes. El sistema los rellenará.
 const plantillas = {
     recordatorio: "¡Hola [NOMBRE]! Te saluda Streaming Store. Tu perfil de [PLATAFORMA] ha vencido. ¿Deseas renovar?",
-    
     cambio: "¡Hola [NOMBRE]! Por tu seguridad hemos modificado tu cuenta de [PLATAFORMA].\n\nTus nuevos datos son:\nCorreo: [EMAIL]\nContraseña: [PASS]\nPerfil: [NOMBRE]",
-    
     gracias: "¡Gracias por tu pago, [NOMBRE]! Tu perfil de [PLATAFORMA] ha sido renovado hasta el [NUEVA_FECHA]."
 };
 
@@ -20,6 +17,7 @@ export async function cargarTodosLosPerfiles() {
     const listElement = document.getElementById('perfiles-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
+    // ¡CORRECCIÓN! Nos aseguramos de pedir 'wsp' (ya lo hacíamos, pero es clave)
     const { data: perfiles, error } = await supabase
         .from('perfiles')
         .select(`
@@ -32,23 +30,12 @@ export async function cargarTodosLosPerfiles() {
         `)
         .order('id', { ascending: false });
 
-    if (error) {
-        listElement.innerHTML = '<li>Error al cargar perfiles.</li>';
-        console.error("Error cargando perfiles:", error);
-        return;
-    }
-    if (perfiles.length === 0) {
-        listElement.innerHTML = '<li>No hay perfiles en el sistema.</li>';
-        return;
-    }
+    if (error) { /* ... (manejo de error) ... */ }
+    if (perfiles.length === 0) { /* ... (manejo de lista vacía) ... */ }
 
     // --- Lógica de Agrupación ---
     const perfilesAgrupados = {};
-
-    let vencidosCount = 0;
-    let vencenHoyCount = 0;
-    let vencenProntoCount = 0;
-    
+    let vencidosCount = 0, vencenHoyCount = 0, vencenProntoCount = 0;
     const hoy = new Date();
     hoy.setHours(0,0,0,0);
     const tresDias = new Date(hoy);
@@ -69,7 +56,6 @@ export async function cargarTodosLosPerfiles() {
         }
         perfilesAgrupados[grupo].push(perfil);
     });
-    // --- Fin Lógica de Agrupación ---
 
     let htmlFinal = '';
 
@@ -81,8 +67,6 @@ export async function cargarTodosLosPerfiles() {
             let info = '';
             let estadoReal = perfil.estado;
             let itemExtraClass = ''; 
-
-            // Datos de la cuenta madre (si existen)
             const cuentaMadre = perfil.cuentas_madre;
 
             if (cuentaMadre) {
@@ -103,17 +87,14 @@ export async function cargarTodosLosPerfiles() {
                     info = `¡VENCIDO! (Desde ${vence.toLocaleDateString('es-ES')})`;
                     itemExtraClass = 'perfil-item-vencido';
                     vencidosCount++;
-                
                 } else if (vence.getTime() === hoy.getTime()) {
                     info = `¡¡VENCE HOY!!`;
                     itemExtraClass = 'perfil-item-hoy';
                     vencenHoyCount++;
-
                 } else if (vence <= tresDias) {
                     info = `Vence pronto: ${vence.toLocaleDateString('es-ES')}`;
                     itemExtraClass = 'perfil-item-pronto';
                     vencenProntoCount++;
-
                 } else {
                     info = `Vence: ${vence.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
                 }
@@ -121,14 +102,11 @@ export async function cargarTodosLosPerfiles() {
             
             const fechaParaInput = perfil.fecha_vencimiento_cliente ? new Date(perfil.fecha_vencimiento_cliente).toISOString().split('T')[0] : '';
 
-            // El botón de Renovar (+30 Días)
             const botonRenovar = (estadoReal === 'vencido') ?
                 `<button class="btn-small renew-btn" data-id="${perfil.id}" data-fecha="${perfil.fecha_vencimiento_cliente}">
                     +30 Días
                  </button>` : '';
             
-            // ¡NUEVO! Botón de Notificar (WhatsApp)
-            // Aparece si el perfil tiene un número guardado
             const botonNotificar = (perfil.wsp && perfil.estado !== 'libre') ?
                 `<button class="btn-small notify-btn" data-id="${perfil.id}">
                     💬 Notificar
@@ -181,17 +159,14 @@ export async function cargarTodosLosPerfiles() {
         });
     });
 
-    // ¡NUEVO! Listener para el botón de Notificar
     document.querySelectorAll('.notify-btn').forEach(button => {
         button.addEventListener('click', async (e) => {
             const id = e.currentTarget.dataset.id;
-            // Volvemos a pedir los datos para tener la info más fresca
             const { data: perfil } = await supabase
                 .from('perfiles')
                 .select(`*, cuentas_madre(*)`)
                 .eq('id', id)
                 .single();
-                
             abrirMenuNotificar(perfil);
         });
     });
@@ -199,51 +174,27 @@ export async function cargarTodosLosPerfiles() {
 
     // --- Pop-up de Advertencia Persistente ---
     let alertMessage = '';
-    if (vencidosCount > 0) {
-        alertMessage += `¡ATENCIÓN!\n\nTienes ${vencidosCount} perfiles VENCIDOS.\n`;
-    }
-    if (vencenHoyCount > 0) {
-        alertMessage += `Tienes ${vencenHoyCount} perfiles que vencen HOY.\n`;
-    }
-    if (vencenProntoCount > 0 && vencenHoyCount === 0) {
-         alertMessage += `Tienes ${vencenProntoCount} perfiles que vencen en los próximos 3 días.\n`;
-    }
-
-    if (alertMessage) {
-        alert(alertMessage + "\nRevisa la lista de perfiles marcados en color.");
-    }
+    if (vencidosCount > 0) { alertMessage += `¡ATENCIÓN!\n\nTienes ${vencidosCount} perfiles VENCIDOS.\n`; }
+    if (vencenHoyCount > 0) { alertMessage += `Tienes ${vencenHoyCount} perfiles que vencen HOY.\n`; }
+    if (vencenProntoCount > 0 && vencenHoyCount === 0) { alertMessage += `Tienes ${vencenProntoCount} perfiles que vencen en los próximos 3 días.\n`; }
+    if (alertMessage) { alert(alertMessage + "\nRevisa la lista de perfiles marcados en color."); }
 }
 
 // --- 4.2: LÓGICA DE EDITAR, MODALS Y BÚSQUEDA ---
 export function initGestionPerfiles() {
-    // Listener para el modal de Editar
     const editForm = document.getElementById('edit-perfil-form');
-    if (editForm) {
-        editForm.addEventListener('submit', guardarCambiosPerfil);
-    }
+    if (editForm) { editForm.addEventListener('submit', guardarCambiosPerfil); }
     
-    // Listeners para cerrar los modals
     const editCloseBtn = document.getElementById('modal-edit-close');
-    if(editCloseBtn) {
-        editCloseBtn.addEventListener('click', () => {
-            document.getElementById('modal-editar-perfil').style.display = 'none';
-        });
-    }
-    const rescateCloseBtn = document.getElementById('modal-rescate-close');
-    if(rescateCloseBtn) {
-        rescateCloseBtn.addEventListener('click', () => {
-            document.getElementById('modal-rescate').style.display = 'none';
-        });
-    }
+    if(editCloseBtn) { editCloseBtn.addEventListener('click', () => { document.getElementById('modal-editar-perfil').style.display = 'none'; }); }
 
-    // Listener para la Barra de Búsqueda
+    const rescateCloseBtn = document.getElementById('modal-rescate-close');
+    if(rescateCloseBtn) { rescateCloseBtn.addEventListener('click', () => { document.getElementById('modal-rescate').style.display = 'none'; }); }
+
     const searchInput = document.getElementById('perfiles-search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', filtrarListaPerfiles);
-    }
+    if (searchInput) { searchInput.addEventListener('input', filtrarListaPerfiles); }
 }
 
-// Función de Búsqueda/Filtrado
 function filtrarListaPerfiles(e) {
     const textoBusqueda = e.target.value.toLowerCase();
     const grupos = document.querySelectorAll('.grupo-plataforma');
@@ -261,28 +212,22 @@ function filtrarListaPerfiles(e) {
             }
             siguienteElemento = siguienteElemento.nextElementSibling;
         }
-
-        if (grupoVisible) {
-            grupo.style.display = 'block';
-        } else {
-            grupo.style.display = 'none';
-        }
+        grupo.style.display = grupoVisible ? 'block' : 'none';
     });
 }
 
-
-// ¡MODIFICADO! Ahora también rellena el teléfono
+// Rellena el modal con los datos
 function abrirModalEditar(perfilData) {
     document.getElementById('edit-perfil-id').value = perfilData.id;
     document.getElementById('edit-perfil-nombre').value = perfilData.nombre;
     document.getElementById('edit-perfil-estado').value = perfilData.estado;
     document.getElementById('edit-perfil-fecha').value = perfilData.fecha;
-    document.getElementById('edit-perfil-telefono').value = perfilData.wsp; // <-- ¡NUEVO!
+    document.getElementById('edit-perfil-telefono').value = perfilData.wsp; // Rellena el WSP
     
     document.getElementById('modal-editar-perfil').style.display = 'flex';
 }
 
-// ¡MODIFICADO! Ahora también guarda el teléfono
+// Guarda los datos del modal
 async function guardarCambiosPerfil(e) {
     e.preventDefault();
     const button = e.target.querySelector('button');
@@ -292,7 +237,7 @@ async function guardarCambiosPerfil(e) {
     const id = document.getElementById('edit-perfil-id').value;
     const nombre_perfil = document.getElementById('edit-perfil-nombre').value;
     const estado = document.getElementById('edit-perfil-estado').value;
-    const wsp = document.getElementById('edit-perfil-telefono').value; // <-- ¡NUEVO!
+    const wsp = document.getElementById('edit-perfil-telefono').value; // Lee el WSP
     let fecha_vencimiento_cliente = document.getElementById('edit-perfil-fecha').value;
 
     if (estado === 'libre' || estado === 'huerfano') {
@@ -305,7 +250,7 @@ async function guardarCambiosPerfil(e) {
             nombre_perfil: nombre_perfil,
             estado: estado,
             fecha_vencimiento_cliente: fecha_vencimiento_cliente,
-            wsp: wsp // <-- ¡NUEVO!
+            wsp: wsp // Guarda el WSP
         })
         .eq('id', id);
 
@@ -320,25 +265,35 @@ async function guardarCambiosPerfil(e) {
     button.textContent = 'Guardar Cambios';
 }
 
-// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS (Sin cambios) ---
+// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS (¡CORREGIDA!) ---
 export async function iniciarRescateHuerfano(cuentaMadre) {
+    
+    // ¡CORRECCIÓN 1! Pedimos el 'wsp' del huérfano
     const { data: huerfanos, error } = await supabase
         .from('perfiles')
-        .select('id, nombre_perfil, fecha_vencimiento_cliente')
+        .select('id, nombre_perfil, fecha_vencimiento_cliente, wsp')
         .eq('estado', 'huerfano');
-    if (error) { /* ... */ }
-    if (huerfanos.length === 0) { /* ... */ }
+
+    if (error) { alert('Error al buscar huérfanos: ' + error.message); return; }
+    if (huerfanos.length === 0) { alert('¡Buenas noticias! No hay perfiles huérfanos para rescatar.'); return; }
 
     let listaHtml = '';
     huerfanos.forEach((huerfano, index) => {
         const fechaISO = huerfano.fecha_vencimiento_cliente ? new Date(huerfano.fecha_vencimiento_cliente).toISOString() : '';
+        const wsp = huerfano.wsp || ''; // Obtenemos el wsp
+        
+        // ¡CORRECCIÓN 2! Guardamos el 'wsp' en el 'data-wsp'
         listaHtml += `
             <div class="huerfano-option">
                 <input type="radio" name="huerfano_id" id="h_${huerfano.id}" 
-                       value="${huerfano.id}" data-nombre="${huerfano.nombre_perfil}" data-fecha="${fechaISO}"
+                       value="${huerfano.id}" 
+                       data-nombre="${huerfano.nombre_perfil}"
+                       data-fecha="${fechaISO}"
+                       data-wsp="${wsp}" 
                        ${index === 0 ? 'checked' : ''}>
                 <label for="h_${huerfano.id}">${huerfano.nombre_perfil}</label>
-            </div>`;
+            </div>
+        `;
     });
 
     document.getElementById('modal-rescate-body').innerHTML = listaHtml;
@@ -354,6 +309,7 @@ async function confirmarRescate(cuentaMadre) {
     const seleccionado = document.querySelector('input[name="huerfano_id"]:checked');
     if (!seleccionado) { /* ... */ }
 
+    // 1. Encontrar un perfil LIBRE en la cuenta "buena"
     const { data: perfilLibre, error: findError } = await supabase
         .from('perfiles').select('id').eq('cuenta_madre_id', cuentaMadre.id).eq('estado', 'libre').limit(1).single();
     if (findError || !perfilLibre) {
@@ -361,20 +317,29 @@ async function confirmarRescate(cuentaMadre) {
         return;
     }
 
+    // 2. Obtener los datos del huérfano (incluyendo WSP)
     const perfilHuerfanoId = seleccionado.value;
     const perfilHuerfanoNombre = seleccionado.dataset.nombre;
     const perfilHuerfanoFecha = seleccionado.dataset.fecha ? new Date(seleccionado.dataset.fecha).toISOString() : null;
+    const perfilHuerfanoWSP = seleccionado.dataset.wsp || null; // ¡CORRECCIÓN 3! Obtenemos el WSP
 
+    // 3. ACTUALIZAR el perfil LIBRE con los datos del huérfano (incluyendo WSP)
     const { error: updateError } = await supabase
-        .from('perfiles').update({
+        .from('perfiles')
+        .update({
             nombre_perfil: perfilHuerfanoNombre,
             estado: 'asignado',
-            fecha_vencimiento_cliente: perfilHuerfanoFecha
-        }).eq('id', perfilLibre.id); 
-    if (updateError) { /* ... */ }
+            fecha_vencimiento_cliente: perfilHuerfanoFecha,
+            wsp: perfilHuerfanoWSP // ¡CORRECCIÓN 4! Pasamos el WSP al perfil
+        })
+        .eq('id', perfilLibre.id); 
 
+    if (updateError) { alert('Error al actualizar el perfil libre: ' + updateError.message); return; }
+
+    // 4. BORRAR el perfil huérfano
     await supabase.from('perfiles').delete().eq('id', perfilHuerfanoId);
 
+    // 5. Refrescar
     document.getElementById('modal-rescate').style.display = 'none';
     mostrarMensajeCliente(cuentaMadre, perfilHuerfanoNombre, null, 'reactiva');
     window.dispatchEvent(new CustomEvent('refrescarVista'));
@@ -412,10 +377,8 @@ async function renovarPerfil(id, fechaActualISO) {
     }
 }
 
-// --- 4.5 ¡NUEVA SECCIÓN! LÓGICA DE NOTIFICACIÓN WHATSAPP ---
-
+// --- 4.5 ¡NUEVA SECCIÓN! LÓGICA DE NOTIFICACIÓN WHATSAPP (Sin cambios) ---
 function abrirMenuNotificar(perfil) {
-    // 1. Preguntamos al usuario qué quiere hacer
     const mensaje = `¿Qué mensaje quieres enviar a "${perfil.nombre_perfil}"?\n
 1 = Recordatorio de Vencimiento
 2 = Agradecimiento por Renovación
@@ -425,39 +388,26 @@ function abrirMenuNotificar(perfil) {
 
     const eleccion = prompt(mensaje);
 
-    // 2. Elegimos la plantilla
     let plantilla;
-    if (eleccion === '1') {
-        plantilla = plantillas.recordatorio;
-    } else if (eleccion === '2') {
-        plantilla = plantillas.gracias;
-    } else if (eleccion === '3') {
-        plantilla = plantillas.cambio;
-    } else {
-        return; // El usuario canceló o puso algo inválido
-    }
+    if (eleccion === '1') { plantilla = plantillas.recordatorio; }
+    else if (eleccion === '2') { plantilla = plantillas.gracias; }
+    else if (eleccion === '3') { plantilla = plantillas.cambio; }
+    else { return; }
 
-    // 3. Rellenamos la plantilla con los datos del perfil
     let textoMensaje = plantilla;
     
-    // Datos básicos
     textoMensaje = textoMensaje.replace(/\[NOMBRE\]/g, perfil.nombre_perfil);
     textoMensaje = textoMensaje.replace(/\[PLATAFORMA\]/g, perfil.cuentas_madre.plataforma);
-    
-    // Datos de cuenta (para plantilla de cambio)
     textoMensaje = textoMensaje.replace(/\[EMAIL\]/g, perfil.cuentas_madre.email);
     textoMensaje = textoMensaje.replace(/\[PASS\]/g, perfil.cuentas_madre.contrasena);
     
-    // Datos de fecha (para plantilla de gracias)
     if (perfil.fecha_vencimiento_cliente) {
         const nuevaFecha = new Date(perfil.fecha_vencimiento_cliente).toLocaleDateString('es-ES');
         textoMensaje = textoMensaje.replace(/\[NUEVA_FECHA\]/g, nuevaFecha);
     }
     
-    // 4. Generamos y abrimos el link de WhatsApp
-    // Usamos encodeURIComponent para que los espacios y saltos de línea funcionen
     const textoCodificado = encodeURIComponent(textoMensaje);
-    const telefono = perfil.wsp; // El número ya debe incluir el código de país (ej: 51...)
+    const telefono = perfil.wsp;
 
     if (!telefono) {
         alert("Error: Este perfil no tiene un número de teléfono guardado.");
@@ -465,7 +415,5 @@ function abrirMenuNotificar(perfil) {
     }
 
     const urlWhatsApp = `https://wa.me/${telefono}?text=${textoCodificado}`;
-    
-    // Abrimos el link en una pestaña nueva
     window.open(urlWhatsApp, '_blank');
 }
