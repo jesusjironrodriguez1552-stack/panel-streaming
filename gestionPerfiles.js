@@ -1,5 +1,5 @@
 //
-// --- gestionPerfiles.js (COMPLETO, FINAL y con CORRECCIÓN DE RESCATE) ---
+// --- gestionPerfiles.js (COMPLETO, FINAL y CON AGRUPACIÓN POR CORREO) ---
 //
 import { supabase } from './supabaseClient.js'
 // Importamos AMBAS funciones de utils.js
@@ -17,7 +17,6 @@ export async function cargarTodosLosPerfiles() {
     const listElement = document.getElementById('perfiles-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
-    // ¡CORRECCIÓN! Nos aseguramos de pedir 'wsp' (ya lo hacíamos, pero es clave)
     const { data: perfiles, error } = await supabase
         .from('perfiles')
         .select(`
@@ -33,8 +32,9 @@ export async function cargarTodosLosPerfiles() {
     if (error) { /* ... (manejo de error) ... */ }
     if (perfiles.length === 0) { /* ... (manejo de lista vacía) ... */ }
 
-    // --- Lógica de Agrupación ---
+    // --- ¡NUEVA LÓGICA DE AGRUPACIÓN! ---
     const perfilesAgrupados = {};
+
     let vencidosCount = 0, vencenHoyCount = 0, vencenProntoCount = 0;
     const hoy = new Date();
     hoy.setHours(0,0,0,0);
@@ -42,13 +42,15 @@ export async function cargarTodosLosPerfiles() {
     tresDias.setDate(hoy.getDate() + 3);
 
     perfiles.forEach(perfil => {
-        let grupo = 'Perfiles Huérfanos';
-        if (perfil.cuentas_madre) {
-            grupo = perfil.cuentas_madre.plataforma.toUpperCase();
-        } else if (perfil.estado === 'libre' && perfil.cuentas_madre) {
-             grupo = perfil.cuentas_madre.plataforma.toUpperCase() + " (Libres)";
-        } else if (perfil.estado === 'libre') {
-            grupo = 'Perfiles Libres (Sin Asignar)';
+        // 1. Determinar el grupo
+        let grupo = 'XX_HUERFANOS'; // Grupo especial para huérfanos
+    
+        if (perfil.estado === 'libre' && !perfil.cuentas_madre) {
+            grupo = 'XX_LIBRES_SIN_ASIGNAR'; // Grupo especial
+        }
+        else if (perfil.cuentas_madre) {
+            // ¡NUEVA CLAVE DE GRUPO! Plataforma + Email
+            grupo = `${perfil.cuentas_madre.plataforma.toUpperCase()} | ${perfil.cuentas_madre.email}`;
         }
         
         if (!perfilesAgrupados[grupo]) {
@@ -56,25 +58,38 @@ export async function cargarTodosLosPerfiles() {
         }
         perfilesAgrupados[grupo].push(perfil);
     });
+    // --- Fin Lógica de Agrupación ---
+    
+    // ¡NUEVO! Ordenar los grupos
+    const gruposOrdenados = Object.keys(perfilesAgrupados).sort((a, b) => {
+        // Pone los grupos especiales (Huérfanos, etc.) al final
+        if (a.startsWith('XX_')) return 1;
+        if (b.startsWith('XX_')) return -1;
+        // Ordena el resto alfabéticamente
+        return a.localeCompare(b);
+    });
 
     let htmlFinal = '';
 
-    for (const grupo in perfilesAgrupados) {
-        htmlFinal += `<h2 class="grupo-plataforma" data-grupo="${grupo}">${grupo}</h2>`;
+    // Recorremos los grupos ORDENADOS
+    for (const grupoKey of gruposOrdenados) {
+        let nombreGrupo = grupoKey;
+        // Limpiamos los nombres de grupos especiales para mostrarlos bonitos
+        if (grupoKey === 'XX_HUERFANOS') nombreGrupo = 'Perfiles Huérfanos (Cuentas Eliminadas)';
+        if (grupoKey === 'XX_LIBRES_SIN_ASIGNAR') nombreGrupo = 'Perfiles Libres (Sin Cuenta Asignada)';
+
+        htmlFinal += `<h2 class="grupo-plataforma" data-grupo="${nombreGrupo}">${nombreGrupo}</h2>`;
         
-        perfilesAgrupados[grupo].forEach(perfil => {
+        perfilesAgrupados[grupoKey].forEach(perfil => {
             let estadoClass = `estado-${perfil.estado}`;
-            let info = '';
+            let info = ''; // La info del email ya está en el título
             let estadoReal = perfil.estado;
             let itemExtraClass = ''; 
-            const cuentaMadre = perfil.cuentas_madre;
 
-            if (cuentaMadre) {
-                info = `Email: ${cuentaMadre.email}`;
-            } else if (perfil.estado === 'huerfano') {
+            if (perfil.estado === 'huerfano') {
                 info = '¡CUENTA MADRE ELIMINADA!';
             } else if (perfil.estado === 'libre') {
-                info = `Plataforma: ${cuentaMadre ? cuentaMadre.plataforma : '???'}`;
+                info = 'Este perfil está libre y listo para asignar.';
             }
 
             // --- Lógica de Vencimiento Mejorada ---
@@ -265,10 +280,9 @@ async function guardarCambiosPerfil(e) {
     button.textContent = 'Guardar Cambios';
 }
 
-// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS (¡CORREGIDA!) ---
+// --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS ---
 export async function iniciarRescateHuerfano(cuentaMadre) {
     
-    // ¡CORRECCIÓN 1! Pedimos el 'wsp' del huérfano
     const { data: huerfanos, error } = await supabase
         .from('perfiles')
         .select('id, nombre_perfil, fecha_vencimiento_cliente, wsp')
@@ -280,9 +294,8 @@ export async function iniciarRescateHuerfano(cuentaMadre) {
     let listaHtml = '';
     huerfanos.forEach((huerfano, index) => {
         const fechaISO = huerfano.fecha_vencimiento_cliente ? new Date(huerfano.fecha_vencimiento_cliente).toISOString() : '';
-        const wsp = huerfano.wsp || ''; // Obtenemos el wsp
+        const wsp = huerfano.wsp || '';
         
-        // ¡CORRECCIÓN 2! Guardamos el 'wsp' en el 'data-wsp'
         listaHtml += `
             <div class="huerfano-option">
                 <input type="radio" name="huerfano_id" id="h_${huerfano.id}" 
@@ -309,7 +322,6 @@ async function confirmarRescate(cuentaMadre) {
     const seleccionado = document.querySelector('input[name="huerfano_id"]:checked');
     if (!seleccionado) { /* ... */ }
 
-    // 1. Encontrar un perfil LIBRE en la cuenta "buena"
     const { data: perfilLibre, error: findError } = await supabase
         .from('perfiles').select('id').eq('cuenta_madre_id', cuentaMadre.id).eq('estado', 'libre').limit(1).single();
     if (findError || !perfilLibre) {
@@ -317,36 +329,32 @@ async function confirmarRescate(cuentaMadre) {
         return;
     }
 
-    // 2. Obtener los datos del huérfano (incluyendo WSP)
     const perfilHuerfanoId = seleccionado.value;
     const perfilHuerfanoNombre = seleccionado.dataset.nombre;
     const perfilHuerfanoFecha = seleccionado.dataset.fecha ? new Date(seleccionado.dataset.fecha).toISOString() : null;
-    const perfilHuerfanoWSP = seleccionado.dataset.wsp || null; // ¡CORRECCIÓN 3! Obtenemos el WSP
+    const perfilHuerfanoWSP = seleccionado.dataset.wsp || null;
 
-    // 3. ACTUALIZAR el perfil LIBRE con los datos del huérfano (incluyendo WSP)
     const { error: updateError } = await supabase
         .from('perfiles')
         .update({
             nombre_perfil: perfilHuerfanoNombre,
             estado: 'asignado',
             fecha_vencimiento_cliente: perfilHuerfanoFecha,
-            wsp: perfilHuerfanoWSP // ¡CORRECCIÓN 4! Pasamos el WSP al perfil
+            wsp: perfilHuerfanoWSP
         })
         .eq('id', perfilLibre.id); 
 
     if (updateError) { alert('Error al actualizar el perfil libre: ' + updateError.message); return; }
 
-    // 4. BORRAR el perfil huérfano
     await supabase.from('perfiles').delete().eq('id', perfilHuerfanoId);
 
-    // 5. Refrescar
     document.getElementById('modal-rescate').style.display = 'none';
     mostrarMensajeCliente(cuentaMadre, perfilHuerfanoNombre, null, 'reactiva');
     window.dispatchEvent(new CustomEvent('refrescarVista'));
 }
 
 
-// --- 4.4 LÓGICA DE RENOVACIÓN (Sin cambios) ---
+// --- 4.4 LÓGICA DE RENOVACIÓN ---
 async function renovarPerfil(id, fechaActualISO) {
     let fechaBase;
     if (fechaActualISO && fechaActualISO !== 'null' && fechaActualISO !== 'undefined') {
@@ -377,7 +385,7 @@ async function renovarPerfil(id, fechaActualISO) {
     }
 }
 
-// --- 4.5 ¡NUEVA SECCIÓN! LÓGICA DE NOTIFICACIÓN WHATSAPP (Sin cambios) ---
+// --- 4.5 LÓGICA DE NOTIFICACIÓN WHATSAPP ---
 function abrirMenuNotificar(perfil) {
     const mensaje = `¿Qué mensaje quieres enviar a "${perfil.nombre_perfil}"?\n
 1 = Recordatorio de Vencimiento
@@ -397,6 +405,13 @@ function abrirMenuNotificar(perfil) {
     let textoMensaje = plantilla;
     
     textoMensaje = textoMensaje.replace(/\[NOMBRE\]/g, perfil.nombre_perfil);
+    
+    // Si la cuenta madre no existe (perfil huérfano), no podemos rellenar los datos
+    if (!perfil.cuentas_madre) {
+        alert("Error: No se pueden enviar datos de una cuenta eliminada (perfil huérfano).");
+        return;
+    }
+    
     textoMensaje = textoMensaje.replace(/\[PLATAFORMA\]/g, perfil.cuentas_madre.plataforma);
     textoMensaje = textoMensaje.replace(/\[EMAIL\]/g, perfil.cuentas_madre.email);
     textoMensaje = textoMensaje.replace(/\[PASS\]/g, perfil.cuentas_madre.contrasena);
