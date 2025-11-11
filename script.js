@@ -3,7 +3,7 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // --- 1. CONEXIÓN A SUPABASE ---
 const SUPABASE_URL = 'https://izbiijrvwkuqfyxpoawb.supabase.co'
-// ¡¡ATENCIÓN!! Pon tu llave 'anon' NUEVA (la que acabas de generar) aquí
+// ¡¡ATENCIÓN!! Pon tu llave 'anon' NUEVA aquí
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml6YmlpanJ2d2t1cWZ5eHBvYXdiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI2NzA0MTcsImV4cCI6MjA3ODI0NjQxN30.GcahHiotPV5YlwRfOUcGNyFVZTe4KpKUBuFyqm-mjO4' 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
@@ -51,7 +51,7 @@ if (logoutButton) {
     })
 }
 
-// --- 3. LÓGICA DE LA APP (¡NUEVA ESTRUCTURA DE PESTAÑAS!) ---
+// --- 3. LÓGICA DE LA APP (ESTRUCTURA DE PESTAÑAS) ---
 
 function initApp() {
     const tabs = document.querySelectorAll('.tab-button');
@@ -168,8 +168,8 @@ async function cargarCuentasMadre() {
         .order('id', { ascending: false });
 
     if (error) {
-        listElement.innerHTML = '<li>Error al cargar cuentas. Revisa la consola (F12).</li>';
-        console.error('Error cargando cuentas madre:', error); // ¡Error aquí!
+        listElement.innerHTML = '<li>Error al cargar cuentas.</li>';
+        console.error('Error cargando cuentas:', error);
         return;
     }
     if (cuentas.length === 0) {
@@ -292,58 +292,70 @@ PERFIL: ${nombrePerfil}
 }
 
 // ==========================================================
-// ¡¡AQUÍ ESTÁ LA LÓGICA CORREGIDA (Versión 2)!!
+// LÓGICA CORREGIDA DE BORRADO
 // ==========================================================
 async function borrarCuenta(cuenta) {
     if (cuenta.estado === 'archivada') {
         // --- BORRADO PERMANENTE ---
-        if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Los perfiles huérfanos NO se borrarán)')) return;
+        if (!confirm('Esta cuenta ya está archivada. ¿Quieres BORRARLA PERMANENTEMENTE? (Los perfiles de clientes se mantendrán como huérfanos)')) return;
         
-        // ¡¡CORRECCIÓN!! Solo borramos la cuenta madre.
-        // La base de datos (con 'Set Null') se encargará de los perfiles huérfanos.
-        const { error: errorCuenta } = await supabase.from('cuentas_madre').delete().eq('id', cuenta.id);
+        // Primero, borramos SOLO los perfiles "libres" de ESTA cuenta (sin cliente asignado)
+        await supabase
+            .from('perfiles')
+            .delete()
+            .eq('cuenta_madre_id', cuenta.id)
+            .eq('estado', 'libre');
+        
+        // Ahora sí, borramos la cuenta madre
+        // Los perfiles "huérfanos" (asignados) quedarán en la DB porque tienen cuenta_madre_id = null
+        const { error: errorCuenta } = await supabase
+            .from('cuentas_madre')
+            .delete()
+            .eq('id', cuenta.id);
         
         if (errorCuenta) {
             alert('Error al borrar cuenta: ' + errorCuenta.message);
             return;
         }
         
-        alert('Cuenta madre borrada permanentemente. Los perfiles huérfanos se mantienen.');
+        alert('Cuenta borrada permanentemente. Los perfiles de clientes se mantienen como huérfanos.');
         cargarCuentasMadre();
-        // Recargamos la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
             cargarTodosLosPerfiles();
         }
 
     } else {
-        // --- ARCHIVADO (Pone perfiles "huérfanos") ---
-        if (!confirm('¿Seguro que quieres BORRAR (archivar) esta cuenta madre? Sus perfiles se marcarán como "huérfanos".')) return;
+        // --- ARCHIVADO ---
+        if (!confirm('¿Seguro que quieres ARCHIVAR esta cuenta? Los perfiles de clientes quedarán como "huérfanos".')) return;
 
         // 1. Archivar la cuenta madre
-        const { error: errorUpdate } = await supabase.from('cuentas_madre').update({ estado: 'archivado' }).eq('id', cuenta.id);
+        const { error: errorUpdate } = await supabase
+            .from('cuentas_madre')
+            .update({ estado: 'archivada' })
+            .eq('id', cuenta.id);
         
         if (errorUpdate) {
             alert('Error al archivar cuenta: ' + errorUpdate.message);
             return;
         }
         
-        // 2. ¡CORRECCIÓN! Poner ASIGNADOS como "huerfano"
+        // 2. SOLO los perfiles ASIGNADOS pasan a "huerfano"
+        // Los perfiles "libres" se borran directamente (no tienen cliente)
         await supabase
             .from('perfiles')
             .update({ estado: 'huerfano' })
             .eq('cuenta_madre_id', cuenta.id)
-            .eq('estado', 'asignado'); // ¡Solo los asignados!
-
-        // 3. ¡CORRECCIÓN! Borrar los "libres"
+            .eq('estado', 'asignado');
+        
+        // 3. Borrar los perfiles libres (sin cliente asignado)
         await supabase
             .from('perfiles')
             .delete()
             .eq('cuenta_madre_id', cuenta.id)
-            .eq('estado', 'libre'); // ¡Borra los libres!
+            .eq('estado', 'libre');
             
-        alert('Cuenta archivada. Perfiles asignados marcados como "huérfanos". Perfiles libres eliminados.');
+        alert('Cuenta archivada. Perfiles de clientes ahora son "huérfanos". Los perfiles libres fueron eliminados.');
         cargarCuentasMadre();
-        // Recargamos la pestaña de perfiles si está activa
         if (document.getElementById('perfiles').classList.contains('active')) {
             cargarTodosLosPerfiles();
         }
@@ -357,8 +369,7 @@ async function cargarTodosLosPerfiles() {
     const listElement = document.getElementById('perfiles-list');
     listElement.innerHTML = '<li>Cargando...</li>';
     
-    // ¡¡CORRECCIÓN!! Ahora la información de la cuenta madre PUEDE SER NULA
-    // por eso el 'cuentas_madre!inner(...)' se cambia a 'cuentas_madre(...)'
+    // Ahora la información de la cuenta madre PUEDE SER NULA
     const { data: perfiles, error } = await supabase
         .from('perfiles')
         .select(`
@@ -371,8 +382,7 @@ async function cargarTodosLosPerfiles() {
         .order('id', { ascending: false });
 
     if (error) {
-        listElement.innerHTML = '<li>Error al cargar perfiles. Revisa la consola (F12).</li>';
-        console.error('Error cargando perfiles:', error); // ¡Error aquí!
+        listElement.innerHTML = '<li>Error al cargar perfiles.</li>';
         return;
     }
     if (perfiles.length === 0) {
@@ -385,13 +395,11 @@ async function cargarTodosLosPerfiles() {
         let estadoClass = `estado-${perfil.estado}`;
         let info = '';
         
-        // ¡¡CORRECCIÓN!! Manejar perfiles huérfanos que ya no tienen cuenta madre
+        // Manejar perfiles huérfanos que ya no tienen cuenta madre
         if (perfil.cuentas_madre) {
             info = `Plataforma: ${perfil.cuentas_madre.plataforma}`;
         } else if (perfil.estado === 'huerfano') {
             info = '¡CUENTA MADRE ELIMINADA!';
-        } else if (perfil.estado === 'libre') {
-            info = `Plataforma: ${perfil.cuentas_madre ? perfil.cuentas_madre.plataforma : '???'}`;
         }
 
         if (perfil.estado === 'asignado') {
