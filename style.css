@@ -517,3 +517,26 @@ nav.tabs {
 .notify-btn:hover {
     background-color: #128C7E; /* Color más oscuro de WhatsApp */
 }
+/* =================================================================
+   14. NUEVOS ESTILOS (Editar Contraseña de Cuenta)
+   ================================================================= */
+
+/* --- Botón de Editar Pass (Amarillo) --- */
+.edit-pass-btn {
+    background-color: #f39c12; /* Naranja/Amarillo */
+    color: #fff;
+    font-weight: bold;
+}
+.edit-pass-btn:hover {
+    background-color: #f1c40f;
+}
+
+/* --- Estilo para el email en el modal --- */
+#edit-cuenta-email {
+    display: block; /* Para que ocupe su propia línea */
+    margin-bottom: 15px; /* Espacio antes del siguiente campo */
+    padding: 10px;
+    background-color: #222;
+    border: 1px dashed #555;
+    border-radius: 6px;
+}
