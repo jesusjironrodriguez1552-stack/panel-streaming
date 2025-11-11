@@ -429,3 +429,33 @@ nav.tabs {
 .perfil-item-pronto strong {
     color: #fcf4a3 !important;
 }
+/* =================================================================
+   11. NUEVOS ESTILOS (Agrupación y Renovación)
+   ================================================================= */
+
+/* --- Título del Grupo de Plataforma --- */
+.grupo-plataforma {
+    padding: 10px;
+    background-color: #1c1c1c;
+    color: #3498db; /* Color azul para el título */
+    border-top: 2px solid #444;
+    border-bottom: 2px solid #444;
+    margin-top: 25px;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+    text-transform: uppercase;
+}
+/* El primer título no necesita margen superior */
+.perfiles-list-container h2:first-of-type {
+    margin-top: 0;
+}
+
+/* --- Botón de Renovar (+30 Días) --- */
+.renew-btn {
+    background-color: #27ae60; /* Verde */
+    color: #fff;
+    font-weight: bold;
+}
+.renew-btn:hover {
+    background-color: #2ecc71;
+}
