@@ -159,8 +159,6 @@ async function guardarCambiosPerfil(e) {
 // --- 4.3: LÓGICA DE RESCATE DE HUÉRFANOS (¡CORREGIDA!) ---
 export async function iniciarRescateHuerfano(cuentaMadre) {
     
-    // 1. Buscar perfiles huérfanos
-    // ¡CORRECCIÓN! También traemos la fecha de vencimiento
     const { data: huerfanos, error } = await supabase
         .from('perfiles')
         .select('id, nombre_perfil, fecha_vencimiento_cliente')
@@ -175,10 +173,8 @@ export async function iniciarRescateHuerfano(cuentaMadre) {
         return;
     }
 
-    // 2. Construir la lista de opciones para el modal
     let listaHtml = '';
     huerfanos.forEach((huerfano, index) => {
-        // ¡CORRECCIÓN! Guardamos también la fecha en el 'data-fecha'
         const fechaISO = huerfano.fecha_vencimiento_cliente ? new Date(huerfano.fecha_vencimiento_cliente).toISOString() : '';
         listaHtml += `
             <div class="huerfano-option">
@@ -192,11 +188,9 @@ export async function iniciarRescateHuerfano(cuentaMadre) {
         `;
     });
 
-    // 3. Llenar y mostrar el modal
     document.getElementById('modal-rescate-body').innerHTML = listaHtml;
     document.getElementById('modal-rescate').style.display = 'flex';
 
-    // 4. Preparar el botón "Confirmar"
     const confirmarBtn = document.getElementById('modal-rescate-confirmar');
     const nuevoBtn = confirmarBtn.cloneNode(true);
     confirmarBtn.parentNode.replaceChild(nuevoBtn, confirmarBtn);
@@ -204,7 +198,7 @@ export async function iniciarRescateHuerfano(cuentaMadre) {
 }
 
 
-// Se ejecuta al hacer clic en "Confirmar Rescate"
+// ¡AQUÍ ESTÁ LA LÓGICA CORREGIDA!
 async function confirmarRescate(cuentaMadre) {
     const seleccionado = document.querySelector('input[name="huerfano_id"]:checked');
     if (!seleccionado) {
@@ -224,14 +218,13 @@ async function confirmarRescate(cuentaMadre) {
         .single();
 
     if (findError || !perfilLibre) {
-        alert('¡Error! Esta cuenta madre ("${cuentaMadre.plataforma} / ${cuentaMadre.email}") no tiene perfiles libres para realizar el rescate.');
+        alert(`¡Error! Esta cuenta madre ("${cuentaMadre.plataforma} / ${cuentaMadre.email}") no tiene perfiles libres para realizar el rescate.`);
         return;
     }
 
     // 2. Obtener los datos del huérfano que seleccionamos
     const perfilHuerfanoId = seleccionado.value;
     const perfilHuerfanoNombre = seleccionado.dataset.nombre;
-    // ¡CORRECCIÓN! Obtenemos la fecha (puede ser null si no había)
     const perfilHuerfanoFecha = seleccionado.dataset.fecha ? new Date(seleccionado.dataset.fecha).toISOString() : null;
 
     // 3. ACTUALIZAR el perfil LIBRE con los datos del huérfano
