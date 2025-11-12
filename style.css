@@ -540,3 +540,43 @@ nav.tabs {
     border: 1px dashed #555;
     border-radius: 6px;
 }
+/* =================================================================
+   15. NUEVOS ESTILOS (Filtros Rápidos)
+   ================================================================= */
+.filtros-rapidos {
+    display: flex;
+    flex-wrap: wrap; /* Para que se apilen en móviles */
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #444;
+}
+
+.filtro-btn {
+    padding: 10px 15px;
+    font-size: 0.9em;
+    font-weight: bold;
+    border: 2px solid #555;
+    background-color: #333;
+    color: #ccc;
+    border-radius: 20px; /* Forma de píldora */
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filtro-btn:hover {
+    background-color: #444;
+    border-color: #777;
+}
+
+/* Estilo para el botón activo */
+.filtro-btn.active {
+    background-color: #3498db;
+    border-color: #3498db;
+    color: #fff;
+}
+
+/* Colores específicos para los filtros cuando están activos */
+.filtro-btn[data-filtro="vencidos"].active { background-color: #e74c3c; border-color: #e74c3c; }
+.filtro-btn[data-filtro="hoy"].active { background-color: #f39c12; border-color: #f39c12; }
+.filtro-btn[data-filtro="libres"].active { background-color: #2ecc71; border-color: #2ecc71; }
