@@ -91,6 +91,12 @@
                     <input type="text" id="perfiles-search-input" placeholder="🔍 Buscar por nombre...">
                 </div>
             </div>
+            <div class="filtros-rapidos">
+                <button class="filtro-btn active" data-filtro="todos">👁️ Ver Todos</button>
+                <button class="filtro-btn" data-filtro="vencidos">🔴 Vencidos</button>
+                <button class="filtro-btn" data-filtro="hoy">🟠 Vencen Hoy</button>
+                <button class="filtro-btn" data-filtro="libres">🟢 Libres</button>
+            </div>
             <ul id="perfiles-list" class="perfiles-list-container">
                 <li>Cargando perfiles...</li>
             </ul>
@@ -118,7 +124,7 @@
                 <label for="edit-perfil-estado">Estado:</label>
                 <select id="edit-perfil-estado">
                     <option value="asignado">Asignado</option>
-                    <option value="libre">Libre (Reembolso)</option>
+                    <option value="libre">Libre (Reciclar)</option>
                     <option value="huerfano">Huérfano</option>
                 </select>
 
